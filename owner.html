@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeWise | Command Center</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* --- DESIGN SYSTEM --- */
+        :root {
+            --bg-dark: #020617;
+            --bg-card: #0f172a;
+            --border: #1e293b;
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-dark); color: var(--text-main); }
+        
+        /* Glassmorphism */
+        .glass-panel { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.03); }
+        .glass-card { background: linear-gradient(145deg, #0f172a, #0b1121); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        
+        /* Inputs & Interactive Elements */
+        .input-dark { 
+            background: #020617; border: 1px solid #334155; color: white; padding: 12px 16px; 
+            border-radius: 10px; width: 100%; outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.95rem;
+        }
+        .input-dark:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white; border: none; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -5px var(--primary-glow); }
+        .btn-gradient:active { transform: translateY(0); }
+
+        /* Sidebar Navigation */
+        .nav-item { 
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 6px;
+            border-radius: 12px; color: var(--text-muted); transition: 0.2s; cursor: pointer; font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.03); color: white; }
+        .nav-item.active { 
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%); 
+            color: var(--primary); border-left-color: var(--primary); 
+        }
+        
+        /* Animations */
+        .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Loader */
+        .loader { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body class="overflow-hidden h-screen flex text-sm selection:bg-blue-500/30">
+
+    <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]">
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+        <div class="glass-panel p-10 rounded-3xl shadow-2xl w-full max-w-sm relative z-10 border border-white/10">
+            <div class="text-center mb-10">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white mx-auto mb-6 shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-cube"></i>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-white">Owner Portal</h1>
+                <p class="text-slate-400 text-sm mt-2">Identify yourself to continue.</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-5">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase ml-1">Identity</label>
+                    <input id="login-id" class="input-dark" placeholder="Enter Owner ID">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase ml-1">Secure Key</label>
+                    <input type="password" id="login-pass" class="input-dark" placeholder="••••••••••••">
+                </div>
+                <button id="btn-login" class="w-full py-4 btn-gradient rounded-xl font-bold text-sm tracking-wide shadow-lg mt-4">
+                    ACCESS DASHBOARD
+                </button>
+            </form>
+            <div class="mt-8 text-center border-t border-white/5 pt-6">
+                <a href="index.html" class="text-xs text-slate-500 hover:text-white transition flex items-center justify-center gap-2 group">
+                    <i class="fas fa-arrow-left group-hover:-translate-x-1 transition"></i> Back to Public Site
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div id="view-dashboard" class="hidden w-full h-full flex">
+        
+        <aside class="w-72 bg-[#020617] border-r border-slate-800 flex flex-col flex-shrink-0 z-40">
+            <div class="p-8 border-b border-slate-800/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">GW</div>
+                    <div>
+                        <h2 class="font-bold text-white text-lg leading-tight">GradeWise</h2>
+                        <span class="text-[10px] text-blue-400 font-mono font-bold tracking-widest uppercase">God Mode</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-5 overflow-y-auto space-y-8">
+                <div>
+                    <div class="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-3 px-3">Analytics & Data</div>
+                    <div onclick="renderTab('overview')" class="nav-item active"><i class="fas fa-chart-pie w-5"></i> Overview</div>
+                    <div onclick="renderTab('institutions')" class="nav-item"><i class="fas fa-server w-5"></i> Institutions</div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-3 px-3">Content Engine</div>
+                    <div onclick="renderTab('branding')" class="nav-item"><i class="fas fa-paint-brush w-5"></i> School Branding</div>
+                    <div onclick="renderTab('global_cms')" class="nav-item"><i class="fas fa-globe w-5"></i> Global Website</div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-3 px-3">System</div>
+                    <div onclick="renderTab('data')" class="nav-item"><i class="fas fa-database w-5"></i> Backup & Restore</div>
+                </div>
+            </nav>
+
+            <div class="p-5 border-t border-slate-800/50">
+                <button onclick="logout()" class="w-full py-3 flex items-center justify-center gap-2 text-red-400 bg-red-500/5 hover:bg-red-500/10 rounded-xl transition font-bold text-xs border border-red-500/10 hover:border-red-500/20 group">
+                    <i class="fas fa-power-off group-hover:scale-110 transition"></i> Terminate Session
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0 bg-[#020617] relative bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+            
+            <header class="h-20 border-b border-slate-800 bg-[#020617]/90 backdrop-blur-md flex items-center justify-between px-10 sticky top-0 z-30">
+                <div>
+                    <h2 id="page-title" class="text-xl font-bold text-white tracking-tight">System Overview</h2>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="text-[10px] text-slate-400 font-mono uppercase">System Operational</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden md:block">
+                        <p class="text-xs font-bold text-white">Super Admin</p>
+                        <p class="text-[10px] text-slate-500">owner@gradewise.com</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400">
+                        <i class="fas fa-user-secret"></i>
+                    </div>
+                </div>
+            </header>
+
+            <div id="content-area" class="flex-1 overflow-y-auto p-10 pb-32 scroll-smooth">
+                </div>
+        </main>
+    </div>
+
+    <div id="edit-modal" class="hidden fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 fade-in-up">
+        <div class="glass-card w-full max-w-md rounded-2xl overflow-hidden relative">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h3 class="text-lg font-bold text-white">Edit Institution</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="edit-id">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Institution Name</label>
+                    <input id="edit-name" class="input-dark">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Admin Email (Login)</label>
+                    <input id="edit-email" class="input-dark">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 uppercase">New Password</label>
+                    <input id="edit-pass" class="input-dark" placeholder="Leave blank to keep current">
+                </div>
+            </div>
+            <div class="p-6 border-t border-slate-800 flex gap-3">
+                <button onclick="closeModal()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition">Cancel</button>
+                <button onclick="saveEdit()" class="flex-1 py-3 btn-gradient rounded-xl font-bold text-sm shadow-lg">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DB_KEY = 'GradeWise_db_v1';
+        const SESSION_KEY = 'GradeWise_owner_session';
+        const CREDENTIALS = { id: 'owner', pass: 'admin123' };
+
+        // --- HELPERS ---
+        const $ = id => document.getElementById(id);
+        const getDB = () => JSON.parse(localStorage.getItem(DB_KEY) || '{"institutions":[], "students":[], "results":[], "exams":[], "siteConfig":{}}');
+        const saveDB = (data) => localStorage.setItem(DB_KEY, JSON.stringify(data));
+        const genID = () => '_' + Math.random().toString(36).substr(2, 9);
+        
+        function showToast(msg, type='success') {
+            const el = document.createElement('div');
+            el.className = `px-5 py-4 rounded-xl shadow-2xl border backdrop-blur-md text-sm font-bold flex items-center gap-3 fade-in-up ${type==='success'?'bg-emerald-500/10 border-emerald-500/30 text-emerald-400':'bg-red-500/10 border-red-500/30 text-red-400'}`;
+            el.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'} text-lg"></i> ${msg}`;
+            $('toast-container').appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        // --- AUTHENTICATION ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const btn = $('btn-login');
+            const originalText = btn.innerText;
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Checking...`;
+            
+            setTimeout(() => {
+                if($('login-id').value === CREDENTIALS.id && $('login-pass').value === CREDENTIALS.pass) {
+                    localStorage.setItem(SESSION_KEY, 'true');
+                    initDashboard();
+                    showToast('Welcome back, Commander.');
+                } else {
+                    showToast('Access Denied: Invalid Credentials', 'error');
+                    btn.innerHTML = originalText;
+                }
+            }, 800);
+        }
+
+        function initDashboard() {
+            $('view-login').classList.add('hidden');
+            $('view-dashboard').classList.remove('hidden');
+            renderTab('overview');
+        }
+
+        function logout() {
+            localStorage.removeItem(SESSION_KEY);
+            window.location.reload();
+        }
+
+        window.onload = () => { if(localStorage.getItem(SESSION_KEY) === 'true') initDashboard(); };
+
+        // --- TAB RENDERING ---
+        function renderTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.toggle('active', el.getAttribute('onclick').includes(tab));
+            });
+
+            const db = getDB();
+            const content = $('content-area');
+            const title = $('page-title');
+
+            // 1. OVERVIEW
+            if(tab === 'overview') {
+                title.innerText = 'System Analytics';
+                const instCount = db.institutions.length;
+                const stuCount = db.students ? db.students.length : 0;
+                
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in-up">
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition"></div>
+                            <div class="relative z-10">
+                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Institutions</p>
+                                <h3 class="text-4xl font-black text-white">${instCount}</h3>
+                                <p class="text-xs text-green-400 mt-2 flex items-center gap-1"><i class="fas fa-arrow-up"></i> Live Count</p>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition"></div>
+                            <div class="relative z-10">
+                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Students</p>
+                                <h3 class="text-4xl font-black text-white">${stuCount}</h3>
+                                <p class="text-xs text-purple-400 mt-2">Across all schools</p>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition"></div>
+                            <div class="relative z-10">
+                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Active Accounts</p>
+                                <h3 class="text-4xl font-black text-white">${db.institutions.filter(i=>i.isActive!==false).length}</h3>
+                                <p class="text-xs text-slate-500 mt-2">Suspended: ${db.institutions.filter(i=>i.isActive===false).length}</p>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-br from-blue-600 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-blue-500/20 text-white relative overflow-hidden">
+                            <div class="relative z-10">
+                                <p class="text-blue-100 text-xs font-bold uppercase tracking-wider mb-2">Database Health</p>
+                                <h3 class="text-2xl font-black">Good</h3>
+                                <p class="text-xs text-blue-200 mt-1 opacity-80">Storage: ${(JSON.stringify(db).length / 1024).toFixed(2)} KB</p>
+                            </div>
+                            <i class="fas fa-server absolute bottom-4 right-4 text-6xl opacity-20"></i>
+                        </div>
+                    </div>
+
+                    <div class="grid lg:grid-cols-3 gap-8 fade-in-up" style="animation-delay: 0.1s">
+                        <div class="lg:col-span-2 glass-card p-8 rounded-2xl">
+                            <div class="flex justify-between items-center mb-6">
+                                <h4 class="font-bold text-white text-lg">Growth Trajectory</h4>
+                                <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">Real-time</span>
+                            </div>
+                            <div class="h-64"><canvas id="mainChart"></canvas></div>
+                        </div>
+                        <div class="glass-card p-8 rounded-2xl flex flex-col justify-center">
+                            <h4 class="font-bold text-white text-lg mb-6 text-center">Entity Distribution</h4>
+                            <div class="h-48 relative w-full">
+                                <canvas id="pieChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Charts Init
+                new Chart($('mainChart'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Current'],
+                        datasets: [{
+                            label: 'Students Onboarded',
+                            data: [0, 5, 12, 20, stuCount - 2, stuCount],
+                            borderColor: '#3b82f6', backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            fill: true, tension: 0.4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#1f2937' } }, x: { grid: { display: false } } } }
+                });
+
+                new Chart($('pieChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Schools', 'Students', 'Exams'],
+                        datasets: [{
+                            data: [instCount, stuCount, db.exams?.length || 0],
+                            backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }, cutout: '70%' }
+                });
+            }
+
+            // 2. INSTITUTIONS
+            if(tab === 'institutions') {
+                title.innerText = 'Manage Institutions';
+                content.innerHTML = `
+                    <div class="flex flex-col lg:flex-row gap-8 h-full fade-in-up">
+                        <div class="lg:w-1/3">
+                            <div class="glass-card p-8 rounded-2xl sticky top-0 border-t-4 border-t-blue-500">
+                                <h3 class="text-xl font-bold text-white mb-6">Register Institution</h3>
+                                <div class="space-y-5">
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Name</label><input id="n-name" class="input-dark mt-1" placeholder="e.g. Springfield Academy"></div>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Email</label><input id="n-email" class="input-dark mt-1" placeholder="admin@school.com"></div>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Password</label><input id="n-pass" class="input-dark mt-1" placeholder="Secure Password"></div>
+                                    <button onclick="addInst()" class="w-full btn-gradient py-3.5 rounded-xl font-bold text-sm shadow-lg mt-2 flex items-center justify-center gap-2"><i class="fas fa-plus-circle"></i> Create Account</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lg:w-2/3 flex flex-col gap-6">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
+                                <input id="search-inst" onkeyup="filterInst()" class="input-dark pl-10 py-3.5 rounded-xl border-slate-700 bg-slate-800/50 backdrop-blur-md" placeholder="Search institutions by name, email or ID...">
+                            </div>
+                            <div class="glass-card rounded-2xl overflow-hidden" id="inst-list-container"></div>
+                        </div>
+                    </div>`;
+                renderInstListHTML(db.institutions);
+            }
+
+            // 3. GLOBAL CMS (LANDING PAGE) - FIXED SAVE LOGIC
+            if(tab === 'global_cms') {
+                title.innerText = 'Global Website CMS';
+                const c = db.siteConfig;
+                content.innerHTML = `
+                    <div class="max-w-5xl mx-auto space-y-8 fade-in-up pb-20">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-6">
+                            <div><h3 class="text-2xl font-bold text-white">Landing Page Editor</h3><p class="text-slate-400 text-sm">Update content for index.html</p></div>
+                            <button onclick="saveGlobalCMS()" id="btn-save-global" class="btn-gradient px-6 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2"><i class="fas fa-save"></i> Publish Changes</button>
+                        </div>
+
+                        <div class="grid lg:grid-cols-2 gap-8">
+                            <div class="glass-card p-8 rounded-2xl space-y-6">
+                                <h4 class="text-lg font-bold text-indigo-400 flex items-center gap-2"><i class="fas fa-heading"></i> Hero & Brand</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Website Name</label><input id="g-brand" class="input-dark mt-1" value="${c.brandName||'GradeWise'}"></div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 uppercase">Logo Upload</label>
+                                        <input type="file" id="g-logo" class="input-dark mt-1 text-xs" accept="image/*">
+                                    </div>
+                                </div>
+                                <div><label class="text-xs font-bold text-slate-500 uppercase">Headline</label><textarea id="g-title" class="input-dark mt-1 font-bold text-lg" rows="2">${c.heroTitle||''}</textarea></div>
+                                <div><label class="text-xs font-bold text-slate-500 uppercase">Subtitle</label><textarea id="g-sub" class="input-dark mt-1" rows="3">${c.heroSub||''}</textarea></div>
+                                <div class="flex gap-2">
+                                    <div class="flex-1"><label class="text-xs font-bold text-slate-500 uppercase">Button Text</label><input id="g-btn" class="input-dark mt-1" value="${c.heroBtn||'Get Started'}"></div>
+                                    <div class="flex-1"><label class="text-xs font-bold text-slate-500 uppercase">WhatsApp</label><input id="g-wa" class="input-dark mt-1" value="${c.whatsapp||''}"></div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-8 rounded-2xl space-y-6">
+                                <h4 class="text-lg font-bold text-purple-400 flex items-center gap-2"><i class="fas fa-info-circle"></i> Footer & Stats</h4>
+                                <div><label class="text-xs font-bold text-slate-500 uppercase">About Header</label><input id="g-ab-h" class="input-dark mt-1" value="${c.aboutHead||''}"></div>
+                                <div><label class="text-xs font-bold text-slate-500 uppercase">About Text</label><textarea id="g-ab-t" class="input-dark mt-1" rows="3">${c.aboutText||''}</textarea></div>
+                                <div class="grid grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Label 1 (Auto)</label><input id="g-st1" class="input-dark mt-1 text-xs" value="${c.stat1Label||'Institutions'}"></div>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Label 2 (Auto)</label><input id="g-st2" class="input-dark mt-1 text-xs" value="${c.stat2Label||'Students'}"></div>
+                                </div>
+                                <div><label class="text-xs font-bold text-slate-500 uppercase">Footer Copyright</label><input id="g-foot" class="input-dark mt-1" value="${c.footerText||''}"></div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card p-8 rounded-2xl">
+                            <h4 class="text-lg font-bold text-emerald-400 mb-6 flex items-center gap-2"><i class="fas fa-th-large"></i> Feature Cards</h4>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 space-y-2">
+                                    <div class="text-xs font-bold text-blue-500 uppercase">Card 1</div>
+                                    <input id="g-f1-t" class="input-dark text-sm font-bold" value="${c.f1Title||''}" placeholder="Title">
+                                    <textarea id="g-f1-d" class="input-dark text-xs" rows="3" placeholder="Description">${c.f1Desc||''}</textarea>
+                                </div>
+                                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 space-y-2">
+                                    <div class="text-xs font-bold text-purple-500 uppercase">Card 2</div>
+                                    <input id="g-f2-t" class="input-dark text-sm font-bold" value="${c.f2Title||''}" placeholder="Title">
+                                    <textarea id="g-f2-d" class="input-dark text-xs" rows="3" placeholder="Description">${c.f2Desc||''}</textarea>
+                                </div>
+                                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 space-y-2">
+                                    <div class="text-xs font-bold text-emerald-500 uppercase">Card 3</div>
+                                    <input id="g-f3-t" class="input-dark text-sm font-bold" value="${c.f3Title||''}" placeholder="Title">
+                                    <textarea id="g-f3-d" class="input-dark text-xs" rows="3" placeholder="Description">${c.f3Desc||''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            // 4. BRANDING - UPDATED WITH THEME SELECTOR
+            if(tab === 'branding') {
+                title.innerText = 'School Branding';
+                const opts = db.institutions.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+                content.innerHTML = `
+                    <div class="max-w-4xl mx-auto fade-in-up pb-20">
+                        <div class="glass-card p-10 mb-8 text-center bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl border-b-4 border-indigo-500 shadow-2xl">
+                            <label class="text-xs font-bold text-indigo-400 uppercase mb-3 block tracking-widest">Select Target Institution</label>
+                            <select id="cms-selector" onchange="loadInstData(this.value)" class="input-dark text-xl font-bold text-center max-w-md mx-auto py-4 border-2 border-slate-700 focus:border-blue-500 cursor-pointer hover:bg-slate-800"><option value="">-- Select School --</option>${opts}</select>
+                        </div>
+                        <div id="cms-editor" class="hidden space-y-6">
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div class="glass-card p-6 rounded-2xl">
+                                    <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Identity</h4>
+                                    <div class="space-y-4">
+                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Display Name</label><input id="c-name" class="input-dark mt-1"></div>
+                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Tagline</label><input id="c-tag" class="input-dark mt-1"></div>
+                                        <div><label class="text-xs text-slate-500 uppercase font-bold">About Us</label><textarea id="c-about" class="input-dark mt-1" rows="2"></textarea></div>
+                                    </div>
+                                </div>
+                                <div class="glass-card p-6 rounded-2xl">
+                                    <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Visuals & Themes</h4>
+                                    <div class="space-y-4">
+                                        
+                                        <div>
+                                            <label class="text-xs text-slate-500 uppercase font-bold">Visual Theme Preset</label>
+                                            <select id="c-theme" class="input-dark mt-1 cursor-pointer">
+                                                <option value="deep_space">Deep Space (Default)</option>
+                                                <option value="midnight_blue">Midnight Blue</option>
+                                                <option value="emerald_city">Emerald City</option>
+                                                <option value="crimson_fury">Crimson Fury</option>
+                                                <option value="royal_purple">Royal Purple</option>
+                                                <option value="classic_academia">Classic Academia</option>
+                                                <option value="modern_teal">Modern Teal</option>
+                                                <option value="solar_flare">Solar Flare</option>
+                                                <option value="oceanic_depth">Oceanic Depth</option>
+                                                <option value="slate_minimal">Slate Minimal</option>
+                                            </select>
+                                        </div>
+
+                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Accent Color Override</label><input type="color" id="c-color" class="w-full h-10 mt-1 bg-transparent border-0 cursor-pointer rounded-lg"></div>
+                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Logo</label><input type="file" id="c-logo" class="input-dark mt-1 text-xs"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="glass-card p-6 rounded-2xl">
+                                <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Contact Details</h4>
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Email</label><input id="c-email" class="input-dark mt-1"></div>
+                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Phone</label><input id="c-phone" class="input-dark mt-1"></div>
+                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Address</label><input id="c-addr" class="input-dark mt-1"></div>
+                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Login Help Msg</label><input id="c-help" class="input-dark mt-1"></div>
+                                </div>
+                            </div>
+                            <button onclick="saveInstData()" class="w-full py-4 btn-primary font-bold rounded-xl shadow-lg transition">Save Configuration</button>
+                        </div>
+                    </div>`;
+            }
+
+            // 5. DATA
+            if(tab === 'data') {
+                title.innerText = 'Data Management';
+                content.innerHTML = `
+                    <div class="max-w-3xl mx-auto space-y-6 fade-in-up pt-8">
+                        <div class="glass-card p-8 flex items-center gap-6 rounded-2xl hover:border-indigo-500/50 transition cursor-default">
+                            <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-3xl"><i class="fas fa-download"></i></div>
+                            <div class="flex-1"><h3 class="text-xl font-bold text-white">Backup Database</h3><p class="text-slate-400 text-sm mt-1">Export full JSON snapshot.</p></div>
+                            <button onclick="downloadBackup()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg">Export</button>
+                        </div>
+                        <div class="glass-card p-8 flex items-center gap-6 rounded-2xl hover:border-purple-500/50 transition cursor-default">
+                            <div class="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 text-3xl"><i class="fas fa-upload"></i></div>
+                            <div class="flex-1"><h3 class="text-xl font-bold text-white">Restore Database</h3><p class="text-slate-400 text-sm mt-1">Overwrite with backup file.</p></div>
+                            <input type="file" id="restore-file" class="hidden" onchange="restoreBackup(this)">
+                            <button onclick="$('restore-file').click()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition shadow-lg">Upload</button>
+                        </div>
+                        <div class="glass-card p-8 flex items-center gap-6 rounded-2xl border-red-900/30 bg-red-900/5 hover:bg-red-900/10 transition cursor-default">
+                            <div class="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 text-3xl"><i class="fas fa-trash-alt"></i></div>
+                            <div class="flex-1"><h3 class="text-xl font-bold text-red-400">Factory Reset</h3><p class="text-red-300/60 text-sm mt-1">Permanently delete all data.</p></div>
+                            <button onclick="wipeData()" class="px-6 py-3 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-bold transition">Reset</button>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        // --- INSTITUTION LOGIC (CRUD) ---
+        function renderInstListHTML(list) {
+            const container = $('inst-list-container');
+            if(list.length === 0) { container.innerHTML = `<div class="p-12 text-center text-slate-500">No institutions found. Use the form to create one.</div>`; return; }
+            
+            container.innerHTML = `<table class="w-full text-left text-sm text-slate-400">
+                <thead class="bg-slate-900/80 text-xs uppercase font-bold text-slate-500 border-b border-slate-800">
+                    <tr><th class="p-5">Institution</th><th class="p-5">Admin User</th><th class="p-5">Status</th><th class="p-5 text-right">Quick Actions</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    ${list.map(i => `
+                    <tr class="hover:bg-slate-800/50 transition group">
+                        <td class="p-5 font-bold text-white flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-sm font-mono text-indigo-400 border border-slate-700 shadow-inner">${i.name.substring(0,2).toUpperCase()}</div>
+                            <div><div class="text-sm">${i.name}</div><div class="text-[10px] text-slate-500">ID: ${i.id}</div></div>
+                        </td>
+                        <td class="p-5 font-mono text-xs text-indigo-300">${i.email}</td>
+                        <td class="p-5"><span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-2 w-fit ${i.isActive!==false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}"><span class="w-1.5 h-1.5 rounded-full ${i.isActive!==false?'bg-emerald-400':'bg-red-400'} animate-pulse"></span>${i.isActive!==false?'Online':'Suspended'}</span></td>
+                        <td class="p-5 text-right">
+                            <div class="flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition">
+                                <button onclick="loginAs('${i.id}')" class="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition" title="Login As Admin"><i class="fas fa-sign-in-alt"></i></button>
+                                <button onclick="openEditModal('${i.id}')" class="p-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button onclick="copyLink('${i.id}')" class="p-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition" title="Copy Homepage Link"><i class="fas fa-link"></i></button>
+                                <button onclick="toggleInst('${i.id}',${!(i.isActive!==false)})" class="p-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition" title="Toggle Status"><i class="fas fa-power-off"></i></button>
+                                <button onclick="deleteInst('${i.id}')" class="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>`;
+        }
+
+        function filterInst() {
+            const term = $('search-inst').value.toLowerCase();
+            const db = getDB();
+            renderInstListHTML(db.institutions.filter(i => i.name.toLowerCase().includes(term) || i.email.toLowerCase().includes(term) || i.id.includes(term)));
+        }
+
+        // --- CRUD ACTIONS ---
+        function addInst() {
+            const n=$('n-name').value, e=$('n-email').value, p=$('n-pass').value;
+            if(n&&e&&p){
+                const db=getDB();
+                if(db.institutions.some(i=>i.email===e)) return showToast("Username already exists", "error");
+                db.institutions.push({id:genID(), name:n, email:e, pass:p, isActive:true, themeColor:'#6366f1', theme:'deep_space'});
+                saveDB(db); showToast("Institution Created Successfully"); renderTab('institutions');
+            } else showToast("Please fill all fields", "error");
+        }
+
+        function openEditModal(id) {
+            const i = getDB().institutions.find(x=>x.id===id);
+            if(i) {
+                $('edit-id').value = id;
+                $('edit-name').value = i.name;
+                $('edit-email').value = i.email;
+                $('edit-pass').value = '';
+                $('edit-modal').classList.remove('hidden');
+            }
+        }
+
+        function saveEdit() {
+            const id = $('edit-id').value;
+            const db = getDB();
+            const idx = db.institutions.findIndex(x=>x.id===id);
+            if(idx !== -1) {
+                db.institutions[idx].name = $('edit-name').value;
+                db.institutions[idx].email = $('edit-email').value;
+                if($('edit-pass').value) db.institutions[idx].pass = $('edit-pass').value;
+                saveDB(db);
+                showToast("Institution Updated");
+                closeModal();
+                renderTab('institutions');
+            }
+        }
+
+        function closeModal() { $('edit-modal').classList.add('hidden'); }
+        function toggleInst(id,s){const db=getDB();db.institutions.find(x=>x.id===id).isActive=s;saveDB(db);renderTab('institutions');}
+        function deleteInst(id){if(confirm("Permanently delete this institution and all its data?")){const db=getDB();db.institutions=db.institutions.filter(x=>x.id!==id);saveDB(db);renderTab('institutions');}}
+        function loginAs(id){localStorage.setItem('GradeWise_session_v1',JSON.stringify({id:id,role:'inst'})); window.open('admin.html','_blank');}
+        function copyLink(id){navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname.replace('owner.html','')}home.html?id=${id}`).then(()=>showToast("Link Copied to Clipboard"));}
+
+        // --- CMS LOGIC ---
+        function loadInstData(id) {
+            const f=$('cms-editor'); if(!id){f.classList.add('hidden');return;}
+            const db=getDB(); const i=db.institutions.find(x=>x.id===id);
+            if(i){
+                f.classList.remove('hidden');
+                $('c-name').value=i.name; $('c-tag').value=i.tagline||''; $('c-about').value=i.aboutText||'';
+                $('c-color').value=i.themeColor||'#6366f1'; $('c-email').value=i.contactEmail||''; $('c-phone').value=i.contactPhone||'';
+                $('c-addr').value=i.address||''; $('c-help').value=i.helpMessage||'';
+                $('c-theme').value=i.theme||'deep_space';
+            }
+        }
+        function saveInstData() {
+            const id=$('cms-selector').value; if(!id)return;
+            const db=getDB(); const idx=db.institutions.findIndex(x=>x.id===id); const i=db.institutions[idx];
+            i.name=$('c-name').value; i.tagline=$('c-tag').value; i.aboutText=$('c-about').value;
+            i.themeColor=$('c-color').value; i.contactEmail=$('c-email').value; i.contactPhone=$('c-phone').value;
+            i.address=$('c-addr').value; i.helpMessage=$('c-help').value;
+            i.theme=$('c-theme').value;
+            
+            const logo=$('c-logo').files[0];
+            if(logo) { const r=new FileReader(); r.onload=e=>{i.profileImage=e.target.result; saveDB(db); showToast("Saved with Logo");}; r.readAsDataURL(logo); }
+            else { saveDB(db); showToast("Branding Updated"); }
+        }
+
+        // --- FIXED GLOBAL CMS ---
+        function saveGlobalCMS() {
+            const btn = $('btn-save-global');
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Saving...`;
+            
+            const db=getDB();
+            db.siteConfig = {
+                ...db.siteConfig,
+                brandName: $('g-brand').value, heroTitle: $('g-title').value, heroSub: $('g-sub').value, heroBtn: $('g-btn').value,
+                stat1Label: $('g-st1').value, stat2Label: $('g-st2').value, whatsapp: $('g-wa').value, footerText: $('g-foot').value,
+                f1Title: $('g-f1-t').value, f1Desc: $('g-f1-d').value, f2Title: $('g-f2-t').value, f2Desc: $('g-f2-d').value,
+                f3Title: $('g-f3-t').value, f3Desc: $('g-f3-d').value, aboutHead: $('g-ab-h').value, aboutText: $('g-ab-t').value,
+            };
+            
+            // Check for logo upload
+            const logoInput = $('g-logo');
+            if(logoInput && logoInput.files.length > 0) {
+                const r = new FileReader();
+                r.onload = e => {
+                    db.siteConfig.brandLogo = e.target.result;
+                    saveDB(db);
+                    showToast("Global Site & Logo Published");
+                    btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
+                };
+                r.readAsDataURL(logoInput.files[0]);
+            } else {
+                saveDB(db);
+                showToast("Global Site Content Published");
+                btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
+            }
+        }
+
+        // --- SYSTEM DATA ---
+        function downloadBackup() {
+            const a=document.createElement('a'); a.href='data:text/json;charset=utf-8,'+encodeURIComponent(localStorage.getItem(DB_KEY));
+            a.download=`gradewise_backup_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(a); a.click(); a.remove();
+        }
+        function restoreBackup(inp) {
+            const f=inp.files[0]; if(!f)return;
+            const r=new FileReader(); r.onload=e=>{try{JSON.parse(e.target.result); localStorage.setItem(DB_KEY,e.target.result); location.reload();}catch(x){showToast("Invalid Backup File","error");}}; r.readAsText(f);
+        }
+        function wipeData() { if(confirm("CRITICAL WARNING: This will delete ALL data. Are you sure?")) { localStorage.removeItem(DB_KEY); location.reload(); } }
+    </script>
+</body>
+</html>

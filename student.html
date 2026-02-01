@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | GradeWise</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cinzel:wght@400;700;900&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* --- DYNAMIC THEME SYSTEM --- */
+        :root {
+            /* Default: Deep Space */
+            --bg-dark: #020617;
+            --bg-panel: rgba(15, 23, 42, 0.85);
+            --primary: #6366f1; 
+            --primary-dark: #4338ca;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255,255,255,0.08);
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: var(--text-main);
+            background-image: 
+                radial-gradient(at 0% 0%, var(--primary-glow) 0px, transparent 50%), 
+                radial-gradient(at 100% 100%, rgba(255,255,255,0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+        
+        /* Glassmorphism */
+        .glass-panel { 
+            background: var(--bg-panel); backdrop-filter: blur(20px); 
+            border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            transition: background 0.5s ease, border-color 0.5s ease;
+        }
+        
+        /* Inputs & Buttons */
+        .input-dark { 
+            background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border); color: var(--text-main); 
+            padding: 12px 16px; border-radius: 10px; width: 100%; outline: none; transition: 0.3s;
+        }
+        .input-dark:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
+            color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; 
+            transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow);
+            display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+        }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        /* Sidebar */
+        .nav-item { 
+            display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 4px;
+            border-radius: 12px; color: var(--text-muted); transition: 0.2s; cursor: pointer; font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .nav-item.active { background: var(--primary-glow); color: white; border-left-color: var(--primary); }
+
+        /* --- PROFESSIONAL TRANSCRIPT DESIGN --- */
+        .a4-container {
+            width: 210mm; height: 297mm; padding: 0;
+            background: #fff; color: #1e293b;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden; margin: 2rem auto;
+            box-sizing: border-box; display: flex; flex-direction: column;
+        }
+        
+        .transcript-frame { 
+            border: 8px solid #1e293b; 
+            outline: 2px solid #94a3b8; outline-offset: -12px;
+            height: 100%; margin: 8mm; 
+            position: relative; display: flex; flex-direction: column;
+            background: #fff;
+        }
+
+        .transcript-inner {
+            padding: 8mm 12mm; height: 100%; display: flex; flex-direction: column;
+            background-image: radial-gradient(#f1f5f9 1px, transparent 1px);
+            background-size: 25px 25px;
+        }
+
+        .watermark-layer {
+            position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; 
+            opacity: 0.04; pointer-events: none; z-index: 0;
+        }
+        .watermark-logo { width: 50%; filter: grayscale(100%); }
+
+        .content-layer { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; }
+
+        .mk-serif { font-family: 'Playfair Display', serif; }
+        .mk-script { font-family: 'Dancing Script', cursive; }
+
+        /* Student Info Grid */
+        .info-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; margin: 1.5rem 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
+        .info-row { display: flex; border-bottom: 1px dotted #cbd5e1; padding-bottom: 3px; margin-bottom: 6px; }
+        .info-label { width: 110px; font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-val { font-weight: 700; color: #0f172a; font-family: 'Playfair Display', serif; font-size: 1rem; }
+
+        /* Table */
+        .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+        .mk-table th { 
+            background: #f8fafc; color: #334155; padding: 10px; text-transform: uppercase; 
+            font-size: 0.65rem; font-weight: 800; letter-spacing: 1px; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b;
+        }
+        .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; color: #334155; text-align: center; font-weight: 500; font-size: 0.9rem; }
+        .mk-table td:first-child { text-align: left; padding-left: 10px; font-weight: 600; color: #0f172a; }
+        
+        /* New Feedback Section */
+        .feedback-section {
+            margin-top: auto;
+            display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem;
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+        }
+        
+        .appreciation-box h4 { font-family: 'Cinzel', serif; font-size: 0.75rem; color: #475569; font-weight: 700; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; }
+        .appr-text { font-family: 'Playfair Display', serif; font-style: italic; color: #334155; font-size: 0.95rem; line-height: 1.4; margin-bottom: 0.5rem; }
+        .motiv-text { font-family: 'Inter', sans-serif; font-size: 0.8rem; color: #6366f1; font-weight: 600; }
+
+        .stats-box { display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; border-left: 1px solid #cbd5e1; padding-left: 1.5rem; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; }
+        .stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; }
+        .stat-val { font-weight: 800; color: #0f172a; font-size: 1.1rem; }
+
+        /* Footer */
+        .doc-footer { display: flex; justify-content: space-between; align-items: end; margin-top: 1rem; border-top: 2px solid #1e293b; padding-top: 1rem; }
+        .principal-box { text-align: center; width: 180px; }
+        .stamp-status { 
+            padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; 
+            font-weight: 800; text-transform: uppercase; display: inline-block; 
+            font-size: 0.85rem; letter-spacing: 1px;
+        }
+        .pass { color: #059669; border-color: #059669; background: #ecfdf5; }
+        .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
+
+        /* Loader */
+        #global-loader { background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="overflow-hidden h-screen flex text-sm selection:bg-indigo-500/30">
+
+    <div id="global-loader" class="fixed inset-0 hidden flex flex-col items-center justify-center text-white">
+        <div class="spinner mb-4"></div>
+        <p class="text-sm font-bold tracking-widest animate-pulse font-mono">PROCESSING...</p>
+    </div>
+
+    <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]">
+        <div class="glass-panel p-10 rounded-2xl shadow-2xl w-full max-w-sm relative z-10 border-t border-white/10">
+            <div class="text-center mb-10">
+                <h1 class="text-2xl font-bold tracking-tight text-white">Student Portal</h1>
+                <p class="text-slate-400 text-xs uppercase tracking-widest mt-2">Academic Access</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-5">
+                <input type="hidden" id="login-inst">
+                <div><label class="text-xs font-bold text-slate-500 uppercase ml-1">Admission No</label><input id="login-username" class="input-dark" required></div>
+                <div><label class="text-xs font-bold text-slate-500 uppercase ml-1">Password</label><input type="password" id="login-password" class="input-dark" required></div>
+                <button id="btn-login" class="w-full btn-primary py-3">Login</button>
+            </form>
+            <div class="mt-6 text-center text-xs text-slate-500"><a href="index.html" class="hover:text-white">Change Institution</a></div>
+        </div>
+    </section>
+
+    <div id="view-dashboard" class="hidden w-full h-full flex bg-[#020617]">
+        <aside class="w-72 bg-[#0b1121] border-r border-slate-800 flex flex-col flex-shrink-0 z-40" style="background-color: var(--bg-dark);">
+            <div class="p-8 border-b border-slate-800/50 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold border border-slate-700 overflow-hidden shadow-lg relative" style="background-color: var(--primary);">
+                    <img id="sb-logo" class="w-full h-full object-cover hidden">
+                    <i id="sb-icon" class="fas fa-university text-lg"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <h2 class="font-bold text-sm leading-tight truncate w-32" style="color:var(--text-main)" id="sb-school">School Name</h2>
+                    <span class="text-[10px] text-slate-500 font-mono font-bold tracking-widest uppercase">Student Panel</span>
+                </div>
+            </div>
+            <nav class="flex-1 p-5 overflow-y-auto space-y-1">
+                <div class="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-3 px-3 mt-2">Menu</div>
+                <div onclick="renderTab('home')" class="nav-item active"><i class="fas fa-th-large w-5 text-center"></i> Overview</div>
+                <div onclick="renderTab('results')" class="nav-item"><i class="fas fa-file-signature w-5 text-center"></i> Exam Results</div>
+                <div onclick="renderTab('profile')" class="nav-item"><i class="fas fa-user-circle w-5 text-center"></i> My Profile</div>
+            </nav>
+            <div class="p-5 border-t border-slate-800/50">
+                <div class="flex items-center gap-3 mb-4 px-2 py-2 rounded-xl bg-slate-900/50 border border-slate-800">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs border border-white/10" style="background-color: var(--primary-glow); color: var(--primary);"><i class="fas fa-user"></i></div>
+                    <div class="overflow-hidden">
+                        <p class="text-xs font-bold truncate" style="color:var(--text-main)" id="sb-name">Student</p>
+                        <p class="text-[9px] text-slate-500 font-mono truncate" id="sb-adm">000</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full py-2.5 text-red-400 text-xs font-bold hover:bg-red-500/10 rounded-xl transition border border-red-500/10 hover:border-red-500/20">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0 relative">
+            <header class="h-20 border-b border-slate-800 bg-[#020617]/80 backdrop-blur-md flex items-center justify-between px-10 sticky top-0 z-30" style="background-color: var(--bg-panel);">
+                <div><h2 id="page-title" class="text-xl font-bold tracking-tight" style="color:var(--text-main)">Overview</h2></div>
+                <div class="flex items-center gap-4">
+                    <button onclick="viewPublicPage()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition text-xs font-bold flex items-center gap-2">
+                        <i class="fas fa-globe"></i> School Website 
+                    </button>
+                </div>
+            </header>
+            <div id="content-area" class="flex-1 overflow-y-auto p-10 pb-32"></div>
+        </main>
+    </div>
+
+    <div id="marksheet-modal" class="hidden fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex justify-center overflow-y-auto fade-in">
+        <div class="w-full max-w-[210mm] relative">
+            <div class="fixed top-6 right-6 flex gap-3 z-[110]">
+                <button onclick="shareResult()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 transition border border-indigo-400"><i class="fas fa-share-alt"></i> Share</button>
+                <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 transition border border-blue-400"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                <button onclick="closeModal()" class="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-xs font-bold backdrop-blur-md border border-white/10 transition cursor-pointer"><i class="fas fa-times"></i> Close</button>
+            </div>
+
+            <div id="mk-printable" class="a4-container">
+                <div class="transcript-frame">
+                    <div class="watermark-layer"><img id="mk-watermark" class="watermark-logo"></div>
+                    
+                    <div class="transcript-inner">
+                        <div class="content-layer">
+                            <div class="text-center mb-6">
+                                <div class="inline-block mb-2 p-1 border border-slate-200 rounded-full"><div class="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"><img id="mk-logo" class="max-w-full max-h-full object-contain"></div></div>
+                                <h1 id="mk-school" class="text-3xl font-black uppercase mk-serif text-slate-900 tracking-wide mb-1">School Name</h1>
+                                <p id="mk-addr" class="text-xs text-slate-500 uppercase tracking-widest font-bold">Institution Address</p>
+                                <div class="mt-4 border-b border-slate-900 w-1/3 mx-auto"></div>
+                                <p class="mt-1 text-sm font-serif italic text-slate-700">Official Statement of Results</p>
+                            </div>
+
+                            <div class="info-grid">
+                                <div class="flex flex-col gap-2">
+                                    <div class="info-row"><span class="info-label">Candidate Name</span><span id="mk-name" class="info-val">Student Name</span></div>
+                                    <div class="info-row"><span class="info-label">Admission ID</span><span id="mk-adm" class="info-val font-mono">0000</span></div>
+                                    <div class="info-row"><span class="info-label">Date of Birth</span><span id="mk-dob" class="info-val">DOB</span></div>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <div class="info-row"><span class="info-label">Class / Grade</span><span id="mk-class" class="info-val">Class</span></div>
+                                    <div class="info-row"><span class="info-label">Examination</span><span id="mk-exam" class="info-val">Exam</span></div>
+                                    <div class="info-row"><span class="info-label">Issue Date</span><span id="mk-date" class="info-val">Date</span></div>
+                                </div>
+                            </div>
+
+                            <table class="mk-table mb-auto">
+                                <thead><tr><th>Subject Description</th><th width="12%">Max Marks</th><th width="12%">Pass Marks</th><th width="12%">Obtained</th><th width="12%">Grade</th></tr></thead>
+                                <tbody id="mk-body"></tbody>
+                                <tfoot><tr class="bg-slate-100"><td colspan="3" class="text-right uppercase font-bold pr-4 py-3 text-xs">Grand Total Score</td><td id="mk-total" class="text-center text-lg font-bold text-slate-900 py-3">0</td><td id="mk-grade-final" class="text-center font-bold text-slate-900 py-3"></td></tr></tfoot>
+                            </table>
+
+                            <div class="feedback-section">
+                                <div class="appreciation-box">
+                                    <h4><i class="fas fa-quote-left mr-2 opacity-50"></i>Performance Insight</h4>
+                                    <p id="mk-appreciation" class="appr-text">"Outstanding performance. The student has shown exceptional understanding."</p>
+                                    <p id="mk-motivation" class="motiv-text">"Keep pushing your limits, the sky is the limit!"</p>
+                                </div>
+                                
+                                <div class="stats-box">
+                                    <div class="stat-row"><span class="stat-label">Class Rank</span><span id="mk-rank" class="stat-val">#1</span></div>
+                                    <div class="stat-row"><span class="stat-label">Attendance</span><span id="mk-att" class="stat-val">98%</span></div>
+                                    <div class="stat-row mt-2"><span class="stat-label">Final Result</span><div id="mk-stamp-container"></div></div>
+                                </div>
+                            </div>
+
+                            <div class="doc-footer">
+                                <div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">
+                                    <span class="font-bold">GRADING KEY:</span> A+ (90-100) • A (80-89) • B (70-79) • C (60-69) • D (50-59) • F (<50)<br>
+                                    This document is digitally generated by GraseWise Academic System. No signature required.
+                                </div>
+                                <div class="principal-box">
+                                    <div class="h-16 flex items-end justify-center mb-1"><img id="mk-sig" class="max-h-full max-w-full object-contain filter grayscale contrast-125"></div>
+                                    <div class="border-t-2 border-slate-900 w-full mb-1"></div>
+                                    <p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p>
+                                    <p class="text-[8px] text-slate-500 uppercase">Head of Institution</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DB_KEY = 'GradeWise_db_v1';
+        const SESSION_KEY = 'grasewise_student_session';
+        let currentStudent = null;
+        let currentInst = null;
+
+        // --- THEME LIBRARY (Same as Owner/Admin) ---
+        const THEMES = {
+            'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.75)', text: '#f8fafc', muted: '#94a3b8' },
+            'midnight_blue': { bg: '#0b1121', glass: 'rgba(30, 41, 59, 0.75)', text: '#f0f9ff', muted: '#94a3b8' },
+            'emerald_city': { bg: '#022c22', glass: 'rgba(6, 78, 59, 0.75)', text: '#ecfdf5', muted: '#6ee7b7' },
+            'crimson_fury': { bg: '#450a0a', glass: 'rgba(127, 29, 29, 0.75)', text: '#fff1f2', muted: '#fda4af' },
+            'royal_purple': { bg: '#2e1065', glass: 'rgba(76, 29, 149, 0.75)', text: '#faf5ff', muted: '#c4b5fd' },
+            'classic_academia': { bg: '#27272a', glass: 'rgba(63, 63, 70, 0.75)', text: '#fafafa', muted: '#a1a1aa' },
+            'modern_teal': { bg: '#134e4a', glass: 'rgba(17, 94, 89, 0.75)', text: '#f0fdfa', muted: '#99f6e4' },
+            'solar_flare': { bg: '#431407', glass: 'rgba(124, 45, 18, 0.75)', text: '#fff7ed', muted: '#fdba74' },
+            'oceanic_depth': { bg: '#0c4a6e', glass: 'rgba(12, 74, 110, 0.75)', text: '#f0f9ff', muted: '#bae6fd' },
+            'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.75)', text: '#f8fafc', muted: '#cbd5e1' }
+        };
+
+        const $ = id => document.getElementById(id);
+        const getDB = () => {
+            const data = localStorage.getItem(DB_KEY);
+            if (!data) return { institutions: [], classes: [], students: [], exams: [], results: [], subjects: [] };
+            const parsed = JSON.parse(data);
+            ['institutions','classes','students','exams','results','subjects'].forEach(k => { if(!parsed[k]) parsed[k] = []; });
+            return parsed;
+        };
+        const saveDB = (data) => localStorage.setItem(DB_KEY, JSON.stringify(data));
+        const showLoader = (show) => $('global-loader').classList.toggle('hidden', !show);
+        
+        function showToast(msg, type='success') {
+            const el = document.createElement('div');
+            el.className = `px-5 py-4 rounded-xl shadow-2xl border backdrop-blur-md text-sm font-bold flex items-center gap-3 fade-in ${type==='success'?'bg-emerald-500/10 border-emerald-500/30 text-emerald-400':'bg-red-500/10 border-red-500/30 text-red-400'}`;
+            el.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-circle'} text-lg"></i> ${msg}`;
+            $('toast-container').appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        // --- INIT & THEME ENGINE ---
+        window.onload = () => { checkSession(); };
+
+        function applyTheme(inst) {
+            const color = inst.themeColor || '#6366f1';
+            const themeKey = inst.theme || 'deep_space';
+            const t = THEMES[themeKey] || THEMES['deep_space'];
+
+            const root = document.documentElement;
+            root.style.setProperty('--primary', color);
+            root.style.setProperty('--primary-dark', adjustColor(color, -20));
+            root.style.setProperty('--primary-glow', color + '40');
+            root.style.setProperty('--bg-dark', t.bg);
+            root.style.setProperty('--bg-panel', t.glass);
+            root.style.setProperty('--text-main', t.text);
+            root.style.setProperty('--text-muted', t.muted);
+        }
+
+        function adjustColor(color, amount) {
+            if (!color.startsWith('#')) return color;
+            return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
+        }
+
+        function checkSession() {
+            const s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+            if(s) {
+                const db = getDB();
+                const stu = db.students.find(x => x.id === s.id);
+                if(stu) {
+                    currentStudent = stu;
+                    currentInst = db.institutions.find(i => i.id === stu.institutionId);
+                    if(currentInst) { 
+                        applyTheme(currentInst);
+                        initDashboard(); 
+                        return; 
+                    }
+                }
+            }
+            const lastSchoolId = localStorage.getItem('grasewise_last_school');
+            if(!lastSchoolId) { window.location.href = 'index.html'; return; }
+
+            const db = getDB();
+            const inst = db.institutions.find(i => i.id === lastSchoolId);
+            if(inst) {
+                currentInst = inst;
+                applyTheme(inst);
+                $('login-inst').value = inst.id;
+                $('view-login').classList.remove('hidden');
+            } else { window.location.href = 'index.html'; }
+        }
+
+        // --- AUTH ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const instId = $('login-inst').value;
+            const uname = $('login-username').value;
+            const pass = $('login-password').value;
+            const btn = $('btn-login');
+
+            if(uname !== pass) return showToast("Credentials mismatch", "error");
+
+            btn.innerHTML = 'Verifying...';
+            setTimeout(() => {
+                const db = getDB();
+                const stu = db.students.find(s => s.institutionId === instId && s.admissionNo === uname);
+                if(stu) {
+                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({id: stu.id}));
+                    currentStudent = stu;
+                    currentInst = db.institutions.find(i => i.id === stu.institutionId);
+                    applyTheme(currentInst);
+                    initDashboard();
+                } else {
+                    showToast("Student Not Found", "error");
+                    btn.innerHTML = 'Login';
+                }
+            }, 800);
+        }
+
+        function logout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
+        function viewPublicPage() { if(currentInst) window.open(`home.html?id=${currentInst.id}`, '_blank'); }
+
+        // --- DASHBOARD ---
+        function initDashboard() {
+            $('view-login').classList.add('hidden');
+            $('view-dashboard').classList.remove('hidden');
+            updateSidebar();
+            renderTab('home');
+        }
+
+        function updateSidebar() {
+            if(!currentInst) return;
+            $('sb-school').innerText = currentInst.name;
+            if($('sb-name')) $('sb-name').innerText = currentStudent.name;
+            if($('sb-adm')) $('sb-adm').innerText = currentStudent.admissionNo;
+            if(currentInst.profileImage) { $('sb-logo').src = currentInst.profileImage; $('sb-logo').classList.remove('hidden'); $('sb-icon').classList.add('hidden'); }
+        }
+
+        function renderTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.getAttribute('onclick').includes(tab)));
+            const content = $('content-area');
+            const title = $('page-title');
+            const db = getDB();
+
+            if(tab === 'home') {
+                title.innerText = 'Overview';
+                content.innerHTML = `
+                    <div class="glass-panel p-8 rounded-2xl fade-in relative overflow-hidden group mb-6" style="border-left: 4px solid var(--primary);">
+                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 opacity-50"></div>
+                        <div class="relative z-10">
+                            <h3 class="text-2xl font-bold mb-2" style="color:var(--text-main)">Welcome Back, ${currentStudent.name} 👋</h3>
+                            <p class="text-sm" style="color:var(--text-muted)">Access your academic records and profile settings.</p>
+                            <button onclick="renderTab('results')" class="mt-4 px-5 py-2 bg-white text-black rounded-lg text-xs font-bold hover:bg-slate-200 transition shadow-lg">Check Results</button>
+                        </div>
+                    </div>`;
+            }
+
+            if(tab === 'results') {
+                title.innerText = 'Academic Records';
+                const results = db.results.filter(r => r.studentId === currentStudent.id && db.exams.some(e => e.id === r.examId));
+                if(results.length === 0) content.innerHTML = `<div class="glass-panel p-12 text-center text-slate-500">No results published yet.</div>`;
+                else {
+                    content.innerHTML = `<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">${results.map(r => {
+                        const exam = db.exams.find(e => e.id === r.examId) || {name: 'Unknown'};
+                        return `<div class="glass-panel p-6 rounded-2xl relative overflow-hidden group hover:border-slate-500 transition">
+                            <div class="flex justify-between items-start mb-6"><div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg" style="color:var(--primary)"><i class="fas fa-file-contract"></i></div><span class="px-2 py-1 rounded text-[10px] font-bold uppercase border" style="color:var(--primary); border-color:var(--primary-glow)">Published</span></div>
+                            <h3 class="text-xl font-bold mb-2" style="color:var(--text-main)">${exam.name}</h3>
+                            <button onclick="openMarksheet('${r.id}')" class="w-full mt-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-xs font-bold transition border border-white/10">View Marksheet</button>
+                        </div>`;
+                    }).join('')}</div>`;
+                }
+            }
+
+            if(tab === 'profile') {
+                title.innerText = 'Profile Settings';
+                const cls = db.classes.find(c => c.id === currentStudent.classId)?.name || 'N/A';
+                content.innerHTML = `
+                    <div class="max-w-2xl mx-auto glass-panel p-8 rounded-2xl fade-in flex items-start gap-8 border-l-4" style="border-left-color: var(--primary);">
+                        <div class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-3xl border-2 border-white/10 flex-shrink-0" style="color:var(--primary)"><i class="fas fa-user"></i></div>
+                        <div class="flex-1 space-y-5">
+                            <h3 class="text-lg font-bold border-b border-slate-700 pb-2" style="color:var(--text-main)">Personal Details</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="text-[10px] uppercase font-bold text-slate-500">Name</label><input id="pf-name" class="input-dark mt-1" value="${currentStudent.name}"></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-500">Admission No</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed" value="${currentStudent.admissionNo}" disabled></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-500">DOB</label><input type="date" id="pf-dob" class="input-dark mt-1 text-slate-300" value="${currentStudent.dob}"></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-500">Class</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed" value="${cls}" disabled></div>
+                            </div>
+                            <button onclick="updateProfile()" class="w-full btn-primary py-3 rounded-xl mt-4">Save Changes</button>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        // --- ACTIONS ---
+        function updateProfile() {
+            try {
+                if (!currentStudent) { showToast("Session expired. Please login.", "error"); return; }
+                const name = $('pf-name').value;
+                const dob = $('pf-dob').value;
+                if(name && dob) {
+                    const db = getDB();
+                    const idx = db.students.findIndex(s => s.id === currentStudent.id);
+                    if(idx !== -1) {
+                        db.students[idx].name = name;
+                        db.students[idx].dob = dob;
+                        saveDB(db);
+                        currentStudent = db.students[idx]; 
+                        currentInst = db.institutions.find(i => i.id === currentStudent.institutionId);
+                        updateSidebar(); 
+                        showToast("Profile Updated Successfully");
+                    }
+                } else { showToast("Fields cannot be empty", "error"); }
+            } catch (e) { showToast("Update failed: " + e.message, "error"); }
+        }
+
+        function getGrade(pct) { if(pct >= 90) return 'A+'; if(pct >= 80) return 'A'; if(pct >= 70) return 'B'; if(pct >= 60) return 'C'; if(pct >= 50) return 'D'; return 'F'; }
+
+        // --- MARKSHEET LOGIC ---
+        function openMarksheet(rid) {
+            try {
+                const db = getDB();
+                let inst = currentInst;
+                if(!inst && currentStudent) inst = db.institutions.find(i => i.id === currentStudent.institutionId);
+                if(!inst) inst = {name: 'Unknown School', address: 'Contact Admin'};
+
+                const r = db.results.find(x => x.id === rid);
+                if(!r) { showToast("Result Data Missing", "error"); return; }
+
+                const exam = (db.exams || []).find(e => e.id === r.examId) || {name: 'Unknown Exam'};
+                const cls = (db.classes || []).find(c => c.id === currentStudent.classId) || {name: 'N/A'};
+
+                $('mk-school').innerText = inst.name;
+                $('mk-addr').innerText = inst.address || '';
+                $('mk-exam').innerText = exam.name;
+                
+                const logo = $('mk-logo');
+                if(inst.profileImage) { logo.src = inst.profileImage; logo.style.display = 'block'; } else logo.style.display = 'none';
+                if($('mk-watermark')) $('mk-watermark').src = inst.profileImage || '';
+
+                const sig = $('mk-sig');
+                if(inst.signatureImage) { sig.src = inst.signatureImage; sig.style.display = 'block'; } else sig.style.display = 'none';
+
+                $('mk-name').innerText = currentStudent.name;
+                $('mk-adm').innerText = currentStudent.admissionNo;
+                $('mk-class').innerText = cls.name;
+                if($('mk-dob')) $('mk-dob').innerText = currentStudent.dob || 'N/A';
+                
+                $('mk-date').innerText = new Date().toLocaleDateString();
+
+                let rows = ''; let maxTotal = 0;
+                const sMarks = r.subjectMarks || {};
+                
+                Object.entries(sMarks).forEach(([sid, marks]) => {
+                    const sub = (db.subjects || []).find(s => s.id === sid);
+                    if(sub) {
+                        const full = Number(sub.fullMarks) || 100;
+                        const pass = Number(sub.passMarks) || 33;
+                        maxTotal += full;
+                        const pct = (marks / full) * 100;
+                        rows += `<tr><td>${sub.name}</td><td>${full}</td><td>${pass}</td><td style="font-weight:700; color:#0f172a">${marks}</td><td style="font-weight:700">${getGrade(pct)}</td></tr>`;
+                    }
+                });
+                
+                $('mk-body').innerHTML = rows || `<tr><td colspan="5" class="text-center py-4">No subjects found.</td></tr>`;
+                $('mk-total').innerText = `${r.total} / ${maxTotal}`;
+                const finalPct = maxTotal > 0 ? ((r.total / maxTotal) * 100).toFixed(1) : 0;
+                $('mk-grade-final').innerText = getGrade(finalPct);
+                
+                $('mk-rank').innerText = r.rank ? `#${r.rank}` : '-';
+                $('mk-att').innerText = r.attendance ? r.attendance + '%' : 'N/A';
+
+                const status = r.status || 'PASS';
+                const clsName = status === 'PASS' ? 'pass' : 'fail';
+                $('mk-stamp-container').innerHTML = `<div class="stamp-status ${clsName}">${status}</div>`;
+
+                // Motivational/Appreciation Logic
+                let appreciation = "Good effort shown in studies.";
+                let motivation = "Keep working hard!";
+                
+                if(finalPct >= 90) {
+                    appreciation = "Exceptional performance! You have demonstrated outstanding mastery of the curriculum.";
+                    motivation = "Your dedication is truly inspiring. Keep setting the bar high!";
+                } else if(finalPct >= 80) {
+                    appreciation = "Excellent work! You have a strong grasp of the core concepts.";
+                    motivation = "Consistency is key. Continue this great momentum.";
+                } else if(finalPct >= 70) {
+                    appreciation = "Very Good. You are making steady progress in your academic journey.";
+                    motivation = "Believe in your potential, you are capable of even more.";
+                } else if(finalPct >= 60) {
+                    appreciation = "Good performance. You are on the right track.";
+                    motivation = "With a little more focus, you can achieve excellent results.";
+                } else {
+                    appreciation = "You have successfully completed the term.";
+                    motivation = "Every setback is a setup for a comeback. Keep trying!";
+                }
+
+                if($('mk-appreciation')) $('mk-appreciation').innerText = `"${appreciation}"`;
+                if($('mk-motivation')) $('mk-motivation').innerText = motivation;
+
+                $('marksheet-modal').classList.remove('hidden');
+            } catch (err) { console.error(err); showToast("Error: " + err.message, "error"); }
+        }
+
+        function closeModal() { $('marksheet-modal').classList.add('hidden'); }
+
+        async function shareResult() {
+            try {
+                showLoader(true);
+                const canvas = await html2canvas(document.getElementById('mk-printable'), { scale: 2 });
+                canvas.toBlob(async (blob) => {
+                    showLoader(false);
+                    const file = new File([blob], 'Result.png', { type: 'image/png' });
+                    if (navigator.share && navigator.canShare({ files: [file] })) {
+                        await navigator.share({ title: 'My Result', text: 'My Official Transcript', files: [file] });
+                    } else showToast("Sharing not supported on this device.", "error");
+                });
+            } catch (err) { showLoader(false); showToast("Share failed", "error"); }
+        }
+
+        function downloadPDF() {
+            showLoader(true);
+            const { jsPDF } = window.jspdf;
+            const element = document.getElementById('mk-printable');
+            html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(`${currentStudent.admissionNo}_Transcript.pdf`);
+                showLoader(false);
+            });
+        }
+    </script>
+</body>
+</html>

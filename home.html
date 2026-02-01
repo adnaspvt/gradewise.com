@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Institution Portal | GradeWise</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- DYNAMIC THEME SYSTEM --- */
+        :root {
+            /* Default Base (Deep Space) */
+            --bg-dark: #020617;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            /* Dynamic Brand - JS overrides this */
+            --brand: #6366f1; 
+            --brand-glow: rgba(99, 102, 241, 0.4);
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: var(--text-main); 
+            overflow-x: hidden; 
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Animated Background */
+        .bg-orb { 
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; z-index: -1; 
+            animation: float 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20px, -20px) scale(1.1); } }
+
+        /* Glassmorphism */
+        .glass-nav { 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px); 
+            border-bottom: 1px solid var(--glass-border); 
+            transition: background 0.5s ease;
+        }
+        
+        .glass-card { 
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px); 
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover { 
+            transform: translateY(-5px); 
+            border-color: var(--brand); 
+            box-shadow: 0 15px 40px -10px var(--brand-glow); 
+        }
+
+        /* Interactive Elements */
+        .btn-brand {
+            background: var(--brand); color: white;
+            box-shadow: 0 0 25px -5px var(--brand-glow);
+            transition: all 0.2s ease; position: relative; overflow: hidden;
+        }
+        .btn-brand:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 10px 30px -5px var(--brand-glow); }
+        .btn-brand:active { transform: translateY(0); }
+
+        /* Utilities */
+        .text-brand { color: var(--brand); }
+        
+        /* Loading & Animation */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        
+        .loader-container { position: fixed; inset: 0; background: var(--bg-dark); z-index: 100; display: flex; justify-content: center; align-items: center; transition: background 0.5s ease; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s infinite linear; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen selection:bg-indigo-500/30">
+
+    <div id="page-loader" class="loader-container">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="bg-orb top-0 left-0 w-[600px] h-[600px]" style="background: var(--brand); opacity: 0.15;"></div>
+        <div class="bg-orb bottom-0 right-0 w-[500px] h-[500px]" style="background: var(--brand); animation-delay: -5s; opacity: 0.1;"></div>
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.04]"></div>
+    </div>
+
+    <nav class="fixed top-0 w-full z-50 glass-nav">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg overflow-hidden relative bg-white/10 border border-white/10">
+                    <img id="nav-logo" class="w-full h-full object-cover hidden">
+                    <i id="nav-icon" class="fas fa-university text-2xl opacity-80"></i>
+                </div>
+                <div>
+                    <h1 id="nav-name" class="font-bold text-lg leading-tight tracking-tight text-white">Loading...</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background-color: var(--brand);"></span>
+                        <p class="text-[10px] text-slate-400 font-mono uppercase tracking-widest">Official Portal</p>
+                    </div>
+                </div>
+            </div>
+            <a href="index.html" class="hidden md:flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition text-xs font-bold text-slate-300 border border-white/5">
+                Powered by GradeWise <i class="fas fa-bolt text-brand"></i>
+            </a>
+        </div>
+    </nav>
+
+    <main id="main-content" class="flex-1 flex flex-col items-center justify-center px-6 pt-32 pb-16 relative hidden w-full max-w-7xl mx-auto">
+        
+        <div class="text-center max-w-4xl mx-auto mb-16 fade-in">
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight leading-tight text-white">
+                Welcome to <br>
+                <span style="color: var(--brand);" class="drop-shadow-lg" id="hero-name-highlight">...</span>
+            </h1>
+            <p id="hero-tagline" class="text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto font-light">
+                Your secure gateway to academic results and digital student services.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 w-full max-w-5xl fade-in" style="animation-delay: 0.1s;">
+            
+            <a id="link-student" href="#" class="glass-card p-8 rounded-3xl group relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                <div class="absolute top-0 left-0 w-full h-1" style="background: var(--brand);"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                
+                <div>
+                    <div class="flex justify-between items-start mb-8">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl text-white shadow-xl transition duration-300 group-hover:scale-110" style="background: var(--brand);">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="px-3 py-1 rounded-full border border-white/10 text-[10px] uppercase font-bold text-slate-400 tracking-wider bg-white/5">Students</div>
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-white mb-2">Student Login</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">View your exam results, download marksheets, and check your academic profile status.</p>
+                </div>
+
+                <div class="mt-8 flex items-center text-sm font-bold text-white group-hover:gap-2 transition-all">
+                    Access Portal <i class="fas fa-arrow-right ml-2 text-brand"></i>
+                </div>
+            </a>
+
+            <a id="link-admin" href="#" class="glass-card p-8 rounded-3xl group relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                <div class="absolute top-0 left-0 w-full h-1 bg-slate-500"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                
+                <div>
+                    <div class="flex justify-between items-start mb-8">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-700/50 flex items-center justify-center text-3xl text-slate-200 shadow-xl border border-white/5 transition duration-300 group-hover:bg-slate-700 group-hover:text-white">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div class="px-3 py-1 rounded-full border border-white/10 text-[10px] uppercase font-bold text-slate-400 tracking-wider bg-white/5">Faculty</div>
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-white mb-2">Administration</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Manage student records, publish exam results, and configure institution settings.</p>
+                </div>
+
+                <div class="mt-8 flex items-center text-sm font-bold text-slate-300 group-hover:text-white group-hover:gap-2 transition-all">
+                    Admin Console <i class="fas fa-arrow-right ml-2 opacity-50 group-hover:opacity-100"></i>
+                </div>
+            </a>
+
+        </div>
+
+        <div class="w-full max-w-5xl mt-16 grid md:grid-cols-3 gap-8 fade-in" style="animation-delay: 0.2s;">
+            <div class="md:col-span-2 glass-card p-8 rounded-3xl">
+                <h4 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-school" style="color: var(--brand);"></i> About Institution
+                </h4>
+                <p id="inst-about" class="text-slate-400 text-sm leading-loose">
+                    Welcome to our official digital platform. We are dedicated to academic excellence and transparent result management.
+                </p>
+            </div>
+            
+            <div class="glass-card p-8 rounded-3xl">
+                <h4 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="fas fa-address-book" style="color: var(--brand);"></i> Contact Us
+                </h4>
+                <ul class="space-y-4 text-sm" id="inst-contact-list"></ul>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="error-state" class="hidden fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center text-center p-6">
+        <div class="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-500 text-5xl mb-6 border border-red-500/20 shadow-2xl">
+            <i class="fas fa-ban"></i>
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-3">Portal Unavailable</h2>
+        <p class="text-slate-400 mb-8 max-w-md leading-relaxed">This institution's digital portal is currently inactive or the link is incorrect. Please contact the administration.</p>
+        <a href="index.html" class="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition border border-slate-700">Back to GradeWise</a>
+    </div>
+
+    <footer class="py-8 text-center text-slate-600 text-xs mt-auto border-t border-white/5 bg-[#000000]/20 backdrop-blur-md">
+        <p>&copy; 2025 GradeWise Systems. Secure & Encrypted.</p>
+    </footer>
+
+    <script>
+        const DB_KEY = 'GradeWise_db_v1';
+        
+        // --- 10 PROFESSIONAL THEMES (Matched with Owner Console) ---
+        const THEMES = {
+            'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.7)', text: '#f8fafc', muted: '#94a3b8' },
+            'midnight_blue': { bg: '#0b1121', glass: 'rgba(30, 41, 59, 0.7)', text: '#f0f9ff', muted: '#94a3b8' },
+            'emerald_city': { bg: '#022c22', glass: 'rgba(6, 78, 59, 0.7)', text: '#ecfdf5', muted: '#6ee7b7' },
+            'crimson_fury': { bg: '#450a0a', glass: 'rgba(127, 29, 29, 0.7)', text: '#fff1f2', muted: '#fda4af' },
+            'royal_purple': { bg: '#2e1065', glass: 'rgba(76, 29, 149, 0.7)', text: '#faf5ff', muted: '#c4b5fd' },
+            'classic_academia': { bg: '#27272a', glass: 'rgba(63, 63, 70, 0.7)', text: '#fafafa', muted: '#a1a1aa' },
+            'modern_teal': { bg: '#134e4a', glass: 'rgba(17, 94, 89, 0.7)', text: '#f0fdfa', muted: '#99f6e4' },
+            'solar_flare': { bg: '#431407', glass: 'rgba(124, 45, 18, 0.7)', text: '#fff7ed', muted: '#fdba74' },
+            'oceanic_depth': { bg: '#0c4a6e', glass: 'rgba(12, 74, 110, 0.7)', text: '#f0f9ff', muted: '#bae6fd' },
+            'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.7)', text: '#f8fafc', muted: '#cbd5e1' }
+        };
+
+        window.onload = function() {
+            const loader = document.getElementById('page-loader');
+            
+            // 1. Get ID
+            const params = new URLSearchParams(window.location.search);
+            const instId = params.get('id');
+
+            if(!instId) {
+                showError("Missing Institution Identifier");
+                return;
+            }
+
+            // 2. Fetch Data
+            try {
+                const db = JSON.parse(localStorage.getItem(DB_KEY) || '{"institutions":[]}');
+                const inst = db.institutions.find(i => i.id === instId);
+
+                // 3. Validation
+                if(!inst) { showError("Institution Not Found"); return; }
+                if(inst.isActive === false) { showError("Account Suspended"); return; }
+
+                // 4. Apply Dynamic Branding & Theme
+                applyTheme(inst);
+                
+                // 5. Populate Content
+                document.getElementById('nav-name').innerText = inst.name;
+                document.getElementById('hero-name-highlight').innerText = inst.name;
+                document.title = `${inst.name} | Portal`;
+                
+                if(inst.tagline) document.getElementById('hero-tagline').innerText = inst.tagline;
+                if(inst.aboutText) document.getElementById('inst-about').innerText = inst.aboutText;
+
+                // 6. Handle Logo
+                if(inst.profileImage) {
+                    const navLogo = document.getElementById('nav-logo');
+                    navLogo.src = inst.profileImage;
+                    navLogo.classList.remove('hidden');
+                    document.getElementById('nav-icon').classList.add('hidden');
+                }
+
+                // 7. Contact Details
+                const contactList = document.getElementById('inst-contact-list');
+                const addContact = (icon, text, href) => {
+                    if(!text) return;
+                    let content = `<span class="text-slate-400">${text}</span>`;
+                    if(href) content = `<a href="${href}" target="_blank" class="text-slate-300 hover:text-white underline decoration-slate-600 underline-offset-4 transition">${text}</a>`;
+                    contactList.innerHTML += `<li class="flex items-start gap-3"><div class="mt-0.5 min-w-[20px] text-center"><i class="fas ${icon}" style="color:var(--brand)"></i></div> ${content}</li>`;
+                };
+
+                addContact('fa-envelope', inst.contactEmail, `mailto:${inst.contactEmail}`);
+                addContact('fa-phone', inst.contactPhone, `tel:${inst.contactPhone}`);
+                addContact('fa-map-marker-alt', inst.address);
+                if(inst.websiteUrl) addContact('fa-globe', 'Visit Official Website', inst.websiteUrl);
+
+                // 8. Smart Links
+                document.getElementById('link-student').onclick = (e) => {
+                    e.preventDefault();
+                    localStorage.setItem('grasewise_last_school', inst.id); 
+                    window.location.href = 'student.html'; 
+                };
+                document.getElementById('link-admin').onclick = (e) => {
+                    e.preventDefault();
+                    localStorage.setItem('GradeWise_session_v1', JSON.stringify({id: inst.id, role: 'inst'}));
+                    window.location.href = 'admin.html';
+                };
+
+                // Reveal Content
+                setTimeout(() => {
+                    loader.classList.add('opacity-0', 'pointer-events-none');
+                    document.getElementById('main-content').classList.remove('hidden');
+                }, 400);
+
+            } catch (e) {
+                console.error(e);
+                showError("System Data Error");
+            }
+        };
+
+        function applyTheme(inst) {
+            // 1. Accent Color
+            const color = inst.themeColor || '#6366f1';
+            document.documentElement.style.setProperty('--brand', color);
+            document.documentElement.style.setProperty('--brand-glow', color + '40'); 
+
+            // 2. Visual Theme Preset
+            const themeKey = inst.theme || 'deep_space';
+            const theme = THEMES[themeKey] || THEMES['deep_space'];
+            
+            document.documentElement.style.setProperty('--bg-dark', theme.bg);
+            document.documentElement.style.setProperty('--glass-bg', theme.glass);
+            document.documentElement.style.setProperty('--text-main', theme.text);
+            document.documentElement.style.setProperty('--text-muted', theme.muted);
+        }
+
+        function showError(msg) {
+            document.getElementById('page-loader').style.display = 'none';
+            const err = document.getElementById('error-state');
+            err.classList.remove('hidden');
+            err.querySelector('p').innerText = msg;
+        }
+    </script>
+</body>
+</html>

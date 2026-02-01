@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraseWise | Digital School Solutions</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- DESIGN SYSTEM --- */
+        body { font-family: 'Plus Jakarta Sans', sans-serif; scroll-behavior: smooth; background-color: #020617; color: #f8fafc; }
+        
+        /* Gradients & Text */
+        .gradient-text { 
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+        }
+        
+        /* Animations */
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        
+        /* Glassmorphism */
+        .glass-nav { 
+            background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(12px); 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+        }
+        .feature-card {
+            background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover { transform: translateY(-5px); border-color: #3b82f6; box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.2); }
+
+        /* Buttons */
+        .btn-glow {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); transition: all 0.2s;
+        }
+        .btn-glow:hover { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); transform: scale(1.02); }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <div class="fixed inset-0 pointer-events-none -z-10">
+        <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]"></div>
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
+    </div>
+
+    <nav class="fixed top-0 w-full z-50 glass-nav">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3 font-bold text-xl tracking-tight">
+                <div id="nav-logo-container" class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg overflow-hidden">
+                    <i id="nav-icon" class="fas fa-layer-group"></i>
+                    <img id="nav-img" class="w-full h-full object-cover hidden">
+                </div>
+                <span id="cms-brand-name" class="text-white">GraseWise</span>
+            </div>
+            
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+                <a href="#features" class="hover:text-white transition">Features</a>
+                <a href="#about" class="hover:text-white transition">About</a>
+                <a href="#contact" class="hover:text-white transition">Contact</a>
+            </div>
+
+            <a href="owner.html" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-white transition flex items-center gap-2">
+                <i class="fas fa-lock text-blue-400"></i> Owner Login
+            </a>
+        </div>
+    </nav>
+
+    <header class="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-20 relative">
+        <div class="fade-in" style="animation-delay: 0.1s">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                v3.0 System Live
+            </div>
+        </div>
+        
+        <h1 id="hero-title" class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight leading-tight max-w-4xl mx-auto fade-in" style="animation-delay: 0.2s">
+            The Intelligent Way to <br>
+            <span class="gradient-text">Manage Academic Results.</span>
+        </h1>
+        
+        <p id="hero-sub" class="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed fade-in" style="animation-delay: 0.3s">
+            GraseWise provides a fully customized, secure, and automated result management portal for modern educational institutions.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 fade-in" style="animation-delay: 0.4s">
+            <a href="#contact" id="hero-btn" class="px-8 py-4 btn-glow text-white font-bold rounded-xl flex items-center justify-center gap-2">
+                Get Started Now <i class="fas fa-arrow-right"></i>
+            </a>
+            <a id="wa-link" href="#" target="_blank" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+                <i class="fab fa-whatsapp text-green-400 text-lg"></i> Contact Sales
+            </a>
+        </div>
+
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce text-slate-600">
+            <i class="fas fa-chevron-down"></i>
+        </div>
+    </header>
+
+    <section id="features" class="py-24 relative z-10">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white mb-4">Why Choose GraseWise?</h2>
+                <p class="text-slate-400">Everything you need to digitize your institution.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="feature-card p-8 rounded-2xl">
+                    <div class="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center text-2xl mb-6">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3 id="f1-t" class="text-xl font-bold text-white mb-3">Dedicated Portal</h3>
+                    <p id="f1-d" class="text-slate-400 text-sm leading-relaxed">Get a unique homepage (e.g., grasewise.com/school) fully branded with your logo.</p>
+                </div>
+                <div class="feature-card p-8 rounded-2xl">
+                    <div class="w-14 h-14 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center text-2xl mb-6">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 id="f2-t" class="text-xl font-bold text-white mb-3">Instant Marksheets</h3>
+                    <p id="f2-d" class="text-slate-400 text-sm leading-relaxed">Upload marks once and generate professional, downloadable PDF results instantly.</p>
+                </div>
+                <div class="feature-card p-8 rounded-2xl">
+                    <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-2xl mb-6">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 id="f3-t" class="text-xl font-bold text-white mb-3">Bank-Grade Security</h3>
+                    <p id="f3-d" class="text-slate-400 text-sm leading-relaxed">Secure admin panels and student logins ensure data privacy and integrity.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="py-24 bg-slate-900/50 border-y border-slate-800">
+        <div class="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div>
+                <h2 id="ab-head" class="text-3xl font-bold text-white mb-6">Built for Education</h2>
+                <p id="ab-text" class="text-slate-400 mb-8 leading-loose">
+                    GraseWise simplifies the complex task of academic administration. From managing student data to publishing exam results, we provide the tools you need to succeed in the digital age.
+                </p>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="p-5 bg-slate-800 rounded-2xl border border-slate-700">
+                        <div id="stat-1-val" class="text-4xl font-black text-white mb-1">0+</div>
+                        <div id="stat-1-lbl" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Partner Schools</div>
+                    </div>
+                    <div class="p-5 bg-slate-800 rounded-2xl border border-slate-700">
+                        <div id="stat-2-val" class="text-4xl font-black text-white mb-1">0+</div>
+                        <div id="stat-2-lbl" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Students Managed</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="relative">
+                <div class="absolute -inset-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-3xl opacity-20"></div>
+                <div class="relative bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-12 h-12 rounded-full bg-slate-700 animate-pulse"></div>
+                        <div class="h-4 bg-slate-700 rounded w-1/2"></div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="h-4 bg-slate-700 rounded w-full"></div>
+                        <div class="h-4 bg-slate-700 rounded w-5/6"></div>
+                        <div class="h-4 bg-slate-700 rounded w-4/6"></div>
+                    </div>
+                    <div class="mt-8 flex gap-4">
+                        <div class="h-10 bg-blue-600/20 rounded-lg w-1/3"></div>
+                        <div class="h-10 bg-slate-700 rounded-lg w-1/3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="py-24 text-center">
+        <div class="max-w-2xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-white mb-6">Ready to Transform Your School?</h2>
+            <p class="text-slate-400 mb-10">Join the GraseWise network today. Contact us for a demo.</p>
+            <a id="wa-link-2" href="#" class="inline-flex items-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition shadow-lg shadow-green-900/20">
+                <i class="fab fa-whatsapp text-2xl"></i> 
+                <span>Chat on WhatsApp</span>
+            </a>
+        </div>
+    </section>
+
+    <footer class="py-8 text-center text-slate-600 text-sm border-t border-slate-800 bg-slate-950">
+        <p>&copy; 2025 <span id="footer-text" class="text-slate-500 font-bold">GraseWise Systems</span>. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        const DB_KEY = 'GradeWise_db_v1';
+        
+        window.onload = function() {
+            // Load Database
+            const db = JSON.parse(localStorage.getItem(DB_KEY) || '{"institutions":[], "students":[], "siteConfig":{}}');
+            const c = db.siteConfig || {};
+            const instCount = db.institutions ? db.institutions.length : 0;
+            const stuCount = db.students ? db.students.length : 0;
+
+            // --- 1. GLOBAL BRANDING ---
+            // Title Tag
+            if(c.brandName) {
+                document.title = c.brandName + " | Digital School Solutions";
+                document.getElementById('cms-brand-name').innerText = c.brandName;
+            }
+            // Logo
+            if(c.brandLogo) {
+                const img = document.getElementById('nav-img');
+                img.src = c.brandLogo;
+                img.classList.remove('hidden');
+                document.getElementById('nav-icon').classList.add('hidden');
+            }
+
+            // --- 2. HERO CONTENT ---
+            if(c.heroTitle) document.getElementById('hero-title').innerHTML = c.heroTitle.replace(/\n/g, "<br>");
+            if(c.heroSub) document.getElementById('hero-sub').innerText = c.heroSub;
+            if(c.heroBtn) document.getElementById('hero-btn').innerHTML = `${c.heroBtn} <i class="fas fa-arrow-right ml-2"></i>`;
+            
+            // WhatsApp Links
+            if(c.whatsapp) {
+                const url = `https://wa.me/${c.whatsapp}`;
+                document.getElementById('wa-link').href = url;
+                document.getElementById('wa-link-2').href = url;
+            }
+
+            // --- 3. FEATURES ---
+            if(c.f1Title) document.getElementById('f1-t').innerText = c.f1Title;
+            if(c.f1Desc) document.getElementById('f1-d').innerText = c.f1Desc;
+            if(c.f2Title) document.getElementById('f2-t').innerText = c.f2Title;
+            if(c.f2Desc) document.getElementById('f2-d').innerText = c.f2Desc;
+            if(c.f3Title) document.getElementById('f3-t').innerText = c.f3Title;
+            if(c.f3Desc) document.getElementById('f3-d').innerText = c.f3Desc;
+
+            // --- 4. ABOUT & STATS ---
+            if(c.aboutHead) document.getElementById('ab-head').innerText = c.aboutHead;
+            if(c.aboutText) document.getElementById('ab-text').innerText = c.aboutText;
+            if(c.stat1Label) document.getElementById('stat-1-lbl').innerText = c.stat1Label;
+            if(c.stat2Label) document.getElementById('stat-2-lbl').innerText = c.stat2Label;
+            
+            // Inject Automated Counts
+            document.getElementById('stat-1-val').innerText = instCount + 5 + '+'; // +5 artificial for demo feel
+            document.getElementById('stat-2-val').innerText = stuCount + 100 + '+';
+
+            // --- 5. FOOTER ---
+            if(c.footerText) document.getElementById('footer-text').innerText = c.footerText;
+        };
+    </script>
+</body>
+</html>
