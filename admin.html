@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-<script src="security.js"></script>
+
     <style>
         /* --- DYNAMIC THEME SYSTEM --- */
         :root {
@@ -54,6 +54,10 @@
         .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
         
         input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        
+        /* Specific input color style */
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), #4338ca);
@@ -274,6 +278,21 @@
         // Sorting State
         let currentSort = { key: 'rank', order: 'asc' };
 
+        // --- THEMES ---
+        const THEMES = {
+            'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.85)', text: '#f8fafc', muted: '#94a3b8' },
+            'midnight_blue': { bg: '#0b1121', glass: 'rgba(30, 41, 59, 0.85)', text: '#f0f9ff', muted: '#94a3b8' },
+            'emerald_city': { bg: '#022c22', glass: 'rgba(6, 78, 59, 0.85)', text: '#ecfdf5', muted: '#6ee7b7' },
+            'crimson_fury': { bg: '#450a0a', glass: 'rgba(127, 29, 29, 0.85)', text: '#fff1f2', muted: '#fda4af' },
+            'royal_purple': { bg: '#2e1065', glass: 'rgba(76, 29, 149, 0.85)', text: '#faf5ff', muted: '#c4b5fd' },
+            'classic_academia': { bg: '#27272a', glass: 'rgba(63, 63, 70, 0.85)', text: '#fafafa', muted: '#a1a1aa' },
+            'modern_teal': { bg: '#134e4a', glass: 'rgba(17, 94, 89, 0.85)', text: '#f0fdfa', muted: '#99f6e4' },
+            'solar_flare': { bg: '#431407', glass: 'rgba(124, 45, 18, 0.85)', text: '#fff7ed', muted: '#fdba74' },
+            'oceanic_depth': { bg: '#0c4a6e', glass: 'rgba(12, 74, 110, 0.85)', text: '#f0f9ff', muted: '#bae6fd' },
+            'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.85)', text: '#f8fafc', muted: '#cbd5e1' },
+            'minimal_light': { bg: '#f8fafc', glass: 'rgba(255, 255, 255, 0.85)', text: '#0f172a', muted: '#64748b' }
+        };
+
         const $ = id => document.getElementById(id);
         const showLoader = (show) => $('global-loader').classList.toggle('hidden', !show);
         
@@ -296,6 +315,20 @@
             $('main-sidebar').classList.toggle('open'); 
             $('mobile-overlay').classList.toggle('hidden'); 
             $('mobile-overlay').classList.toggle('open');
+        }
+
+        function applyTheme(inst) {
+            const color = inst.themeColor || '#6366f1';
+            const themeKey = inst.theme || 'deep_space';
+            const t = THEMES[themeKey] || THEMES['deep_space'];
+            
+            const root = document.documentElement;
+            root.style.setProperty('--primary', color);
+            root.style.setProperty('--primary-glow', color + '40');
+            root.style.setProperty('--bg-dark', t.bg);
+            root.style.setProperty('--bg-panel', t.glass);
+            root.style.setProperty('--text-main', t.text);
+            root.style.setProperty('--text-muted', t.muted);
         }
 
         // --- AUTH & INIT ---
@@ -330,10 +363,7 @@
             $('sidebar-inst-name').innerText = currentUser.name;
             if(currentUser.profileImage) { $('sidebar-logo').src = currentUser.profileImage; $('sidebar-logo').classList.remove('hidden'); $('sidebar-icon').classList.add('hidden'); }
             
-            // Apply theme
-            const root = document.documentElement;
-            root.style.setProperty('--primary', currentUser.themeColor || '#6366f1');
-            root.style.setProperty('--primary-glow', (currentUser.themeColor || '#6366f1') + '40');
+            applyTheme(currentUser);
             
             await refreshData();
             $('global-loader').classList.add('hidden');
@@ -535,6 +565,32 @@
                                 <div><label class="text-xs font-bold text-slate-500 uppercase">School Name</label><input id="set-name" class="input-field mt-1" value="${i.name}"></div>
                                 <div><label class="text-xs font-bold text-slate-500 uppercase">Tagline</label><input id="set-tag" class="input-field mt-1" value="${i.tagline||''}"></div>
                                 <div class="md:col-span-2"><label class="text-xs font-bold text-slate-500 uppercase">About</label><textarea id="set-about" class="input-field mt-1" rows="3">${i.aboutText||''}</textarea></div>
+                                
+                                <div class="md:col-span-2 grid md:grid-cols-2 gap-6 mt-2 pt-6 border-t border-slate-700/50">
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 uppercase">Brand Color</label>
+                                        <div class="flex items-center gap-4 mt-2">
+                                            <input type="color" id="set-color" class="w-10 h-10 rounded cursor-pointer bg-transparent border-0 p-0" value="${i.themeColor || '#6366f1'}">
+                                            <span class="text-xs text-slate-400">Select your primary accent color</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 uppercase">Visual Theme Preset</label>
+                                        <select id="set-theme" class="input-field mt-2 cursor-pointer">
+                                            <option value="deep_space" ${i.theme === 'deep_space' ? 'selected' : ''}>Deep Space (Default)</option>
+                                            <option value="midnight_blue" ${i.theme === 'midnight_blue' ? 'selected' : ''}>Midnight Blue</option>
+                                            <option value="emerald_city" ${i.theme === 'emerald_city' ? 'selected' : ''}>Emerald City</option>
+                                            <option value="crimson_fury" ${i.theme === 'crimson_fury' ? 'selected' : ''}>Crimson Fury</option>
+                                            <option value="royal_purple" ${i.theme === 'royal_purple' ? 'selected' : ''}>Royal Purple</option>
+                                            <option value="classic_academia" ${i.theme === 'classic_academia' ? 'selected' : ''}>Classic Academia</option>
+                                            <option value="modern_teal" ${i.theme === 'modern_teal' ? 'selected' : ''}>Modern Teal</option>
+                                            <option value="solar_flare" ${i.theme === 'solar_flare' ? 'selected' : ''}>Solar Flare</option>
+                                            <option value="oceanic_depth" ${i.theme === 'oceanic_depth' ? 'selected' : ''}>Oceanic Depth</option>
+                                            <option value="slate_minimal" ${i.theme === 'slate_minimal' ? 'selected' : ''}>Slate Minimal</option>
+                                            <option value="minimal_light" ${i.theme === 'minimal_light' ? 'selected' : ''}>Minimal Light</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="glass-panel p-8 rounded-2xl">
@@ -741,7 +797,7 @@
                         const attVal = row['Attendance Days'] || row['Attendance']; if(attVal !== undefined) { const attInp = document.querySelector(`.att-input[data-sid="${sid}"]`); if(attInp) { attInp.value = attVal; } }
                     }
                 });
-                showToast("Data Imported. Please Publish to save."); fileInput.value = ''; updateLiveStats();
+                showToast("Data Imported. Please Save to apply changes."); fileInput.value = ''; updateLiveStats();
             };
             r.readAsArrayBuffer(f);
         }
@@ -920,15 +976,22 @@
             showLoader(true);
             const data = {
                 name: $('set-name').value, tagline: $('set-tag').value, aboutText: $('set-about').value,
-                contactEmail: $('set-email').value, contactPhone: $('set-phone').value, address: $('set-addr').value
+                contactEmail: $('set-email').value, contactPhone: $('set-phone').value, address: $('set-addr').value,
+                themeColor: $('set-color').value, theme: $('set-theme').value
             };
             const logo = $('set-logo').files[0];
             const sig = $('set-sig').files[0];
             if(logo) data.profileImage = await uploadImage(`logos/${currentUser.id}_logo`, await readFile(logo));
             if(sig) data.signatureImage = await uploadImage(`logos/${currentUser.id}_sig`, await readFile(sig));
+            
             await db.collection('institutions').doc(currentUser.id).update(data);
-            localStorage.setItem(SESSION_KEY, JSON.stringify({ ...currentUser, ...data }));
-            showLoader(false); showToast("Profile Updated");
+            
+            currentUser = { ...currentUser, ...data }; 
+            localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+            applyTheme(currentUser); 
+            
+            showLoader(false); 
+            showToast("Profile Updated");
         }
 
         const readFile = (file) => new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });

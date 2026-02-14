@@ -11,7 +11,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="security.js"></script>
+
     <style>
         /* --- DESIGN SYSTEM --- */
         body { font-family: 'Plus Jakarta Sans', sans-serif; scroll-behavior: smooth; background-color: #020617; color: #f8fafc; }
@@ -68,6 +68,8 @@
                 <a href="#about" class="hover:text-white transition">About</a>
                 <a href="#register" class="hover:text-white transition">Register</a>
             </div>
+
+            
         </div>
     </nav>
 
@@ -179,8 +181,8 @@
     <section id="register" class="py-24 relative z-10 border-t border-slate-800 bg-[#020617]">
         <div class="max-w-4xl mx-auto px-6">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-white mb-4">Request Institution Access</h2>
-                <p class="text-slate-400">Submit your details below. Our team will verify and prepare your secure cloud portal.</p>
+                <h2 class="text-3xl font-bold text-white mb-4">Register Your Institution</h2>
+                <p class="text-slate-400">Create your account below. Our team will verify and activate your secure cloud portal immediately.</p>
             </div>
             
             <div class="glass-nav p-8 md:p-10 rounded-3xl border border-slate-700 shadow-2xl max-w-3xl mx-auto relative overflow-hidden">
@@ -197,20 +199,24 @@
                             <input id="req-name" class="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white mt-2 outline-none transition" required placeholder="Your Full Name">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Admin Email (Login ID)</label>
                             <input type="email" id="req-email" class="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white mt-2 outline-none transition" required placeholder="admin@school.com">
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</label>
                             <input type="tel" id="req-phone" class="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white mt-2 outline-none transition" required placeholder="+1 234 567 8900">
                         </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Admin Password</label>
+                            <input type="password" id="req-pass" class="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white mt-2 outline-none transition" required placeholder="Create a secure password for your portal">
+                        </div>
                     </div>
                     <div class="pt-4">
-                        <button type="submit" class="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition shadow-lg shadow-green-900/20 flex items-center justify-center gap-3 text-lg">
-                            <i class="fab fa-whatsapp text-2xl"></i> Send Request via WhatsApp
+                        <button type="submit" id="btn-register" class="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition shadow-lg shadow-green-900/20 flex items-center justify-center gap-3 text-lg">
+                            <i class="fab fa-whatsapp text-2xl"></i> Register & Request Approval
                         </button>
                         <p class="text-center text-xs text-slate-500 mt-4">
-                            <i class="fas fa-lock mr-1"></i> Your details are sent securely directly to the system owner for account creation.
+                            <i class="fas fa-cloud text-blue-400 mr-1"></i> Your account will be generated instantly in our secure database.
                         </p>
                     </div>
                 </form>
@@ -240,14 +246,14 @@
 
         window.onload = async function() {
             try {
-                // 2. Fetch CMS Data & Live Stats from Cloud
+                // Fetch CMS Data & Live Stats from Cloud
                 const docSnap = await db.collection('site_config').doc('main').get();
                 const c = docSnap.exists ? docSnap.data() : {};
                 
                 const instSnap = await db.collection('institutions').get();
                 const stuSnap = await db.collection('students').get();
 
-                // --- APPLY BRANDING ---
+                // Apply Branding
                 if(c.brandName) {
                     document.title = c.brandName + " | Digital School Solutions";
                     document.getElementById('cms-brand-name').innerText = c.brandName;
@@ -259,7 +265,7 @@
                     document.getElementById('nav-icon').classList.add('hidden');
                 }
 
-                // --- APPLY CMS CONTENT ---
+                // Apply CMS Content
                 if(c.heroTitle) document.getElementById('hero-title').innerHTML = c.heroTitle.replace(/\n/g, "<br>");
                 if(c.heroSub) document.getElementById('hero-sub').innerText = c.heroSub;
                 if(c.heroBtn) document.getElementById('hero-btn').innerHTML = `${c.heroBtn} <i class="fas fa-arrow-right ml-2"></i>`;
@@ -294,46 +300,59 @@
             }
         };
 
-        // Handle Registration Form Submission
+        // Handle LIVE Registration Form Submission
         async function submitRegistration(e) {
             e.preventDefault();
             
-            // Check if Owner has configured a WhatsApp number
-            if (!globalWhatsappNumber) {
-                alert("The System Owner has not configured a WhatsApp support number yet.");
-                return;
-            }
+            const btn = document.getElementById('btn-register');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+            btn.disabled = true;
             
             // Get Form Data
             const school = document.getElementById('req-school').value;
             const name = document.getElementById('req-name').value;
             const email = document.getElementById('req-email').value;
             const phone = document.getElementById('req-phone').value;
+            const pass = document.getElementById('req-pass').value;
 
-            // 1. Save request secretly to Firebase Database for records
             try {
-                await db.collection('registration_requests').add({
-                    schoolName: school,
-                    contactName: name,
+                // 1. Create the Institution directly in the database (Suspended status by default)
+                // This precisely mirrors the data structure created inside owner.html
+                const docRef = await db.collection('institutions').add({
+                    name: school,
                     email: email,
-                    phone: phone,
-                    status: 'pending',
-                    timestamp: new Date().toISOString()
+                    pass: pass,
+                    contactName: name,
+                    contactEmail: email,
+                    contactPhone: phone,
+                    isActive: false,       // Suspended / Pending Approval
+                    themeColor: '#6366f1', // Default Theme Color
+                    theme: 'deep_space',   // Default Theme Style
+                    createdAt: new Date().toISOString()
                 });
-            } catch(err) {
-                console.warn("Could not save to DB directly, but proceeding to WhatsApp.", err);
-            }
 
-            // 2. Format beautiful message for WhatsApp
-            const text = `*New Institution Registration Request*%0A%0A*School Name:* ${school}%0A*Contact Person:* ${name}%0A*Email:* ${email}%0A*Phone:* ${phone}%0A%0AHello, I would like to request access to the GradeWise Cloud platform for my institution so we can manage our academic results digitally.`;
-            
-            // 3. Open WhatsApp link to send message directly to Owner
-            const url = `https://wa.me/${globalWhatsappNumber}?text=${text}`;
-            window.open(url, '_blank');
-            
-            // 4. Clear the form
-            document.getElementById('reg-form').reset();
-            alert("Your request has been prepared! Please hit send in WhatsApp to complete your registration.");
+                // 2. Open WhatsApp link to send message directly to Owner (if configured)
+                if (globalWhatsappNumber) {
+                    const text = `*New Institution Registration*%0A%0A*School Name:* ${school}%0A*Admin Email:* ${email}%0A*Contact:* ${name} (${phone})%0A%0AHello, I have just registered my institution on GradeWise. My designated Account ID is: *${docRef.id}*. Please approve my account to activate the portal.`;
+                    const waUrl = `https://wa.me/${globalWhatsappNumber}?text=${text}`;
+                    
+                    // Open WhatsApp in a new tab
+                    window.open(waUrl, '_blank');
+                } else {
+                    alert("Registration successful! (Note: The system owner has not configured a WhatsApp number yet, so the automatic message could not be sent).");
+                }
+
+                // 3. Redirect their current window to their newly created portal
+                // It will show as "Unavailable/Suspended" until the owner toggles it online
+                window.location.href = `home.html?id=${docRef.id}`;
+
+            } catch(err) {
+                console.error("Registration Error:", err);
+                alert("An error occurred during registration. Please check your connection and try again.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
     </script>
 </body>
