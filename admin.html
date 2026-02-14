@@ -13,17 +13,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
     <style>
         /* --- DYNAMIC THEME SYSTEM --- */
         :root {
-            /* Default: Deep Space */
             --bg-dark: #020617;
-            --bg-panel: rgba(15, 23, 42, 0.85); /* Matches glass-bg in other files */
+            --bg-panel: rgba(15, 23, 42, 0.85);
             --bg-input: rgba(30, 41, 59, 0.6);
-            
             --primary: #6366f1; 
             --primary-glow: rgba(99, 102, 241, 0.5);
-            
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --border: rgba(255,255,255,0.08);
@@ -33,21 +35,17 @@
             font-family: 'Inter', sans-serif; 
             background-color: var(--bg-dark); 
             color: var(--text-main); 
-            background-image: 
-                radial-gradient(at 0% 0%, var(--primary-glow) 0px, transparent 50%), 
-                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            background-image: radial-gradient(at 0% 0%, var(--primary-glow) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
             background-attachment: fixed;
             transition: background-color 0.5s ease, color 0.5s ease;
         }
         
-        /* Glassmorphism */
         .glass-panel { 
             background: var(--bg-panel); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             transition: background 0.5s ease, border-color 0.5s ease;
         }
         
-        /* Inputs */
         .input-field { 
             background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main);
             padding: 12px 16px; border-radius: 10px; width: 100%; outline: none; 
@@ -55,7 +53,8 @@
         }
         .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
         
-        /* Buttons */
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), #4338ca);
             color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600;
@@ -71,7 +70,6 @@
         }
         .btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
 
-        /* Sidebar */
         .nav-item { 
             display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 6px;
             border-radius: 10px; color: var(--text-muted); transition: all 0.2s; cursor: pointer; font-weight: 500;
@@ -89,13 +87,11 @@
         .me-table th { 
             text-transform: uppercase; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text-muted);
             padding: 1.25rem 1rem; border-bottom: 2px solid var(--border); background: rgba(0,0,0,0.3);
+            cursor: pointer; user-select: none;
         }
+        .me-table th:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
         .me-table td { border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; position: relative; vertical-align: middle; }
         
-        .row-status { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; transition: 0.3s; }
-        .rs-pass { background: #10b981; box-shadow: 4px 0 15px -2px rgba(16, 185, 129, 0.4); }
-        .rs-fail { background: #ef4444; box-shadow: 4px 0 15px -2px rgba(239, 68, 68, 0.4); }
-
         .mark-wrapper { position: relative; display: flex; align-items: center; justify-content: center; }
         .mark-input {
             background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); 
@@ -104,8 +100,10 @@
         }
         .mark-input:focus { background: var(--primary-glow); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); transform: translateY(-1px); }
         .mark-input.fail-mark { color: #fca5a5; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-        .att-input { border-color: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-        .att-input:focus { border-color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
+        
+        /* New Attendance Input Styles */
+        .att-input { border-color: rgba(251, 191, 36, 0.4); color: #fbbf24; }
+        .att-input:focus { border-color: #fbbf24; background: rgba(251, 191, 36, 0.1); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2); }
 
         .command-bar {
             position: fixed; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
@@ -118,25 +116,9 @@
         }
         @keyframes slideUp { from { transform: translate(-50%, 150%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
         
-        .stat-group { display: flex; flex-direction: column; align-items: flex-start; }
-        .stat-label { font-size: 0.6rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; letter-spacing: 1px; margin-bottom: 2px; }
-        .stat-val { font-size: 1.25rem; font-weight: 700; color: var(--text-main); font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; }
-
-        /* A4 Preview Styles */
-        .a4-container { width: 210mm; height: 297mm; background: #fff; color: #1e293b; font-family: 'Inter', sans-serif; transform: scale(0.65); transform-origin: top center; margin: 0 auto; display: flex; flex-direction: column; }
-        .transcript-frame { border: 8px solid #1e293b; outline: 2px solid #94a3b8; outline-offset: -12px; height: 100%; margin: 8mm; position: relative; display: flex; flex-direction: column; background: #fff; }
-        .transcript-inner { padding: 8mm 12mm; height: 100%; display: flex; flex-direction: column; background-image: radial-gradient(#f1f5f9 1px, transparent 1px); background-size: 25px 25px; }
-        .mk-serif { font-family: 'Playfair Display', serif; }
-        .mk-header-font { font-family: 'Cinzel', serif; }
-        .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-        .mk-table th { background: #f8fafc; padding: 10px; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; }
-        .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: center; }
-        .stamp-status { padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; font-weight: 800; text-transform: uppercase; display: inline-block; font-size: 0.85rem; }
-        .pass { color: #059669; border-color: #059669; background: #ecfdf5; } .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
-
-        /* Utils */
         .fade-in { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(15px); }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
         #global-loader { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -144,19 +126,21 @@
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; transform: translateX(-100%); height: 100%; z-index: 50; width: 280px; transition: transform 0.3s; }
-            .sidebar.open { transform: translateX(0); }
-            .overlay { display: none; }
-            .overlay.open { display: block; }
-        }
+        /* A4 Styles */
+        .a4-container { width: 210mm; height: 297mm; background: #fff; color: #1e293b; font-family: 'Inter', sans-serif; transform: scale(0.65); transform-origin: top center; margin: 0 auto; display: flex; flex-direction: column; }
+        .transcript-frame { border: 8px solid #1e293b; outline: 2px solid #94a3b8; outline-offset: -12px; height: 100%; margin: 8mm; position: relative; display: flex; flex-direction: column; background: #fff; }
+        .transcript-inner { padding: 8mm 12mm; height: 100%; display: flex; flex-direction: column; background-image: radial-gradient(#f1f5f9 1px, transparent 1px); background-size: 25px 25px; }
+        .mk-header-font { font-family: 'Cinzel', serif; }
+        .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+        .mk-table th { background: #f8fafc; padding: 10px; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; }
+        .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: center; }
     </style>
 </head>
 <body class="overflow-hidden h-screen flex text-sm selection:bg-indigo-500/30">
 
-    <div id="global-loader" class="fixed inset-0 hidden flex flex-col items-center justify-center text-white">
+    <div id="global-loader" class="fixed inset-0 flex flex-col items-center justify-center text-white">
         <div class="spinner mb-4"></div>
-        <p class="text-sm font-bold tracking-widest animate-pulse">PROCESSING...</p>
+        <p class="text-sm font-bold tracking-widest animate-pulse">SYNCING CLOUD...</p>
     </div>
 
     <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
@@ -180,8 +164,6 @@
     </section>
 
     <div id="view-dashboard" class="hidden w-full h-full flex bg-[#0f172a]">
-        <div id="mobile-overlay" onclick="toggleSidebar()" class="overlay fixed inset-0 bg-black/50 z-30 hidden backdrop-blur-sm"></div>
-
         <aside id="main-sidebar" class="sidebar w-72 bg-[#020617] border-r border-slate-800 flex flex-col flex-shrink-0 z-40 relative transition-colors duration-500">
             <div class="p-8 border-b border-slate-800/50 flex items-center gap-4">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-slate-800 font-bold border border-slate-700 overflow-hidden shadow-lg relative" style="background-color: var(--primary);">
@@ -212,7 +194,6 @@
         <main class="flex-1 flex flex-col min-w-0 relative">
             <header class="h-20 border-b border-slate-800 bg-[#020617]/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 transition-colors duration-500">
                 <div class="flex items-center gap-4">
-                    <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fas fa-bars text-xl"></i></button>
                     <div><h2 id="page-title" class="text-lg font-bold text-white tracking-tight">Overview</h2></div>
                 </div>
                 <div class="flex items-center gap-4">
@@ -233,51 +214,30 @@
         </div>
     </div>
 
-    <div id="promote-modal" class="hidden fixed inset-0 z-[80] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 fade-in">
-        <div class="glass-panel w-full max-w-md rounded-2xl overflow-hidden border-t border-white/10">
-            <div class="p-6 border-b border-slate-700"><h3 class="text-lg font-bold text-white">Bulk Promote Students</h3></div>
-            <div class="p-6 space-y-4">
-                <p class="text-slate-400 text-sm">Select the new class for the selected students:</p>
-                <select id="promote-target-class" class="input-field"></select>
-                <div class="flex justify-end gap-3 mt-4">
-                    <button onclick="$('promote-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm">Cancel</button>
-                    <button onclick="confirmPromote()" class="btn-primary px-6 py-2 text-sm">Promote</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        const DB_KEY = 'GradeWise_db_v1';
-        const SESSION_KEY = 'GradeWise_session_v1';
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDluJn6c-9vr3jJUEIl3FJ2l4HD4W1M2k",
+            authDomain: "gradewise-app.firebaseapp.com",
+            projectId: "gradewise-app",
+            storageBucket: "gradewise-app.firebasestorage.app",
+            messagingSenderId: "938150156100",
+            appId: "1:938150156100:web:219cfacbf0452ddfe2e911"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        const SESSION_KEY = 'GradeWise_admin_session';
         let currentUser = null;
         let activeChart = null;
-        let lastSubConfig = { full: '100', pass: '33' };
-
-        // --- 10 PROFESSIONAL THEMES ---
-        const THEMES = {
-            'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.75)', text: '#f8fafc', muted: '#94a3b8' },
-            'midnight_blue': { bg: '#0b1121', glass: 'rgba(30, 41, 59, 0.75)', text: '#f0f9ff', muted: '#94a3b8' },
-            'emerald_city': { bg: '#022c22', glass: 'rgba(6, 78, 59, 0.75)', text: '#ecfdf5', muted: '#6ee7b7' },
-            'crimson_fury': { bg: '#450a0a', glass: 'rgba(127, 29, 29, 0.75)', text: '#fff1f2', muted: '#fda4af' },
-            'royal_purple': { bg: '#2e1065', glass: 'rgba(76, 29, 149, 0.75)', text: '#faf5ff', muted: '#c4b5fd' },
-            'classic_academia': { bg: '#27272a', glass: 'rgba(63, 63, 70, 0.75)', text: '#fafafa', muted: '#a1a1aa' },
-            'modern_teal': { bg: '#134e4a', glass: 'rgba(17, 94, 89, 0.75)', text: '#f0fdfa', muted: '#99f6e4' },
-            'solar_flare': { bg: '#431407', glass: 'rgba(124, 45, 18, 0.75)', text: '#fff7ed', muted: '#fdba74' },
-            'oceanic_depth': { bg: '#0c4a6e', glass: 'rgba(12, 74, 110, 0.75)', text: '#f0f9ff', muted: '#bae6fd' },
-            'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.75)', text: '#f8fafc', muted: '#cbd5e1' }
-        };
+        let localState = { students: [], classes: [], exams: [], results: [], subjects: [] };
+        
+        // Sorting State
+        let currentSort = { key: 'rank', order: 'asc' };
 
         const $ = id => document.getElementById(id);
-        const getDB = () => {
-            const data = localStorage.getItem(DB_KEY);
-            if (!data) return { institutions: [], classes: [], students: [], exams: [], results: [], subjects: [] };
-            const parsed = JSON.parse(data);
-            ['institutions','classes','students','exams','results','subjects'].forEach(k => { if(!parsed[k]) parsed[k] = []; });
-            return parsed;
-        };
-        const saveDB = (data) => localStorage.setItem(DB_KEY, JSON.stringify(data));
-        const genID = () => '_' + Math.random().toString(36).substr(2, 9);
         const showLoader = (show) => $('global-loader').classList.toggle('hidden', !show);
         
         function showToast(msg, type='success') {
@@ -288,70 +248,89 @@
             setTimeout(() => el.remove(), 4000);
         }
 
-        // --- THEME ENGINE ---
-        function applyTheme(inst) {
-            const color = inst.themeColor || '#6366f1';
-            const themeKey = inst.theme || 'deep_space';
-            const t = THEMES[themeKey] || THEMES['deep_space'];
-
-            const root = document.documentElement;
-            root.style.setProperty('--primary', color);
-            root.style.setProperty('--primary-glow', color + '40');
-            root.style.setProperty('--bg-dark', t.bg);
-            root.style.setProperty('--bg-panel', t.glass);
-            root.style.setProperty('--text-main', t.text);
-            root.style.setProperty('--text-muted', t.muted);
+        async function uploadImage(path, dataUrl) {
+            if(!dataUrl || !dataUrl.startsWith('data:')) return null;
+            const ref = storage.ref().child(path);
+            await ref.putString(dataUrl, 'data_url');
+            return await ref.getDownloadURL();
         }
 
-        function toggleSidebar() { $('main-sidebar').classList.toggle('open'); $('mobile-overlay').classList.toggle('hidden'); }
-
-        function handleLogin(e) {
+        // --- AUTH & INIT ---
+        async function handleLogin(e) {
             e.preventDefault();
-            const btn = $('btn-login'); btn.innerHTML = `<div class="loader mx-auto"></div>`;
-            setTimeout(() => {
-                const db = getDB();
-                const user = db.institutions.find(i => i.email === $('login-email').value && i.pass === $('login-pass').value);
-                if (user) {
-                    if (user.isActive === false) { showToast('Account Suspended', 'error'); btn.innerHTML = 'Login'; } 
-                    else { localStorage.setItem(SESSION_KEY, JSON.stringify({id: user.id, role: 'inst'})); location.reload(); }
-                } else { showToast('Invalid Credentials', 'error'); btn.innerHTML = 'Login'; }
-            }, 800);
+            const btn = $('btn-login'); btn.innerText = "Checking...";
+            const email = $('login-email').value;
+            const pass = $('login-pass').value;
+
+            try {
+                const snap = await db.collection('institutions').where('email', '==', email).where('pass', '==', pass).get();
+                if(!snap.empty) {
+                    const doc = snap.docs[0];
+                    if(doc.data().isActive === false) return showToast("Account Suspended", "error");
+                    currentUser = { id: doc.id, ...doc.data() };
+                    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+                    initDashboard();
+                } else { showToast("Invalid Credentials", "error"); btn.innerText = "Access Dashboard"; }
+            } catch(e) { console.error(e); showToast("Network Error", "error"); btn.innerText = "Access Dashboard"; }
         }
 
         function checkSession() {
-            const s = JSON.parse(localStorage.getItem(SESSION_KEY));
-            if (s && s.role === 'inst') {
-                const db = getDB();
-                currentUser = db.institutions.find(i => i.id === s.id);
-                if (currentUser && currentUser.isActive !== false) {
-                    $('view-login').classList.add('hidden');
-                    $('view-dashboard').classList.remove('hidden');
-                    $('sidebar-inst-name').innerText = currentUser.name;
-                    if(currentUser.profileImage) { $('sidebar-logo').src = currentUser.profileImage; $('sidebar-logo').classList.remove('hidden'); $('sidebar-icon').classList.add('hidden'); }
-                    applyTheme(currentUser);
-                    renderTab('overview');
-                } else { $('view-login').classList.remove('hidden'); }
-            } else { $('view-login').classList.remove('hidden'); }
+            const session = localStorage.getItem(SESSION_KEY);
+            if(session) { currentUser = JSON.parse(session); initDashboard(); } 
+            else { $('global-loader').classList.add('hidden'); $('view-login').classList.remove('hidden'); }
         }
 
-        function logout() { localStorage.removeItem(SESSION_KEY); window.location.reload(); }
+        async function initDashboard() {
+            $('view-login').classList.add('hidden');
+            $('global-loader').classList.remove('hidden');
+            $('view-dashboard').classList.remove('hidden');
+            $('sidebar-inst-name').innerText = currentUser.name;
+            if(currentUser.profileImage) { $('sidebar-logo').src = currentUser.profileImage; $('sidebar-logo').classList.remove('hidden'); $('sidebar-icon').classList.add('hidden'); }
+            
+            // Apply theme
+            const root = document.documentElement;
+            root.style.setProperty('--primary', currentUser.themeColor || '#6366f1');
+            root.style.setProperty('--primary-glow', (currentUser.themeColor || '#6366f1') + '40');
+            
+            await refreshData();
+            $('global-loader').classList.add('hidden');
+            renderTab('overview');
+        }
+
+        function logout() { localStorage.removeItem(SESSION_KEY); location.reload(); }
         function viewPublicPage() { window.open(`home.html?id=${currentUser.id}`, '_blank'); }
         window.onload = checkSession;
 
-        // --- TABS ---
-        function renderTab(tab) {
+        async function refreshData() {
+            try {
+                const [c, s, e, r, sub] = await Promise.all([
+                    db.collection('classes').where('institutionId', '==', currentUser.id).get(),
+                    db.collection('students').where('institutionId', '==', currentUser.id).get(),
+                    db.collection('exams').where('institutionId', '==', currentUser.id).get(),
+                    db.collection('results').where('institutionId', '==', currentUser.id).get(),
+                    db.collection('subjects').where('institutionId', '==', currentUser.id).get()
+                ]);
+                
+                localState.classes = c.docs.map(d => ({id: d.id, ...d.data()}));
+                localState.students = s.docs.map(d => ({id: d.id, ...d.data()}));
+                localState.exams = e.docs.map(d => ({id: d.id, ...d.data()}));
+                localState.results = r.docs.map(d => ({id: d.id, ...d.data()}));
+                localState.subjects = sub.docs.map(d => ({id: d.id, ...d.data()}));
+            } catch(e) { console.error("Sync Error", e); }
+        }
+
+        // --- DASHBOARD TABS ---
+        async function renderTab(tab) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.getAttribute('onclick').includes(tab)));
-            if(window.innerWidth < 768) { $('main-sidebar').classList.remove('open'); $('mobile-overlay').classList.add('hidden'); }
-            
-            const db = getDB();
             const content = $('content-area');
             const title = $('page-title');
-
+            
             if(tab === 'overview') {
                 title.innerText = 'Overview';
-                const sCount = db.students.filter(s => s.institutionId === currentUser.id).length;
-                const cCount = db.classes.filter(c => c.institutionId === currentUser.id).length;
-                const eCount = db.exams.filter(e => e.institutionId === currentUser.id).length;
+                await refreshData();
+                const sCount = localState.students.length;
+                const cCount = localState.classes.length;
+                const eCount = localState.exams.length;
 
                 content.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in">
@@ -362,13 +341,12 @@
                     <div class="glass-panel p-8 rounded-2xl fade-in"><h4 class="text-lg font-bold mb-6" style="color:var(--text-main)">Student Distribution</h4><div class="h-64"><canvas id="mainChart"></canvas></div></div>`;
                 
                 if(activeChart) activeChart.destroy();
-                const classes = db.classes.filter(c => c.institutionId === currentUser.id);
                 const ctx = $('mainChart').getContext('2d');
                 activeChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: classes.length ? classes.map(c=>c.name) : ['No Data'],
-                        datasets: [{ label: 'Students', data: classes.length ? classes.map(c=>db.students.filter(s=>s.classId===c.id).length) : [0], backgroundColor: currentUser.themeColor || '#6366f1', borderRadius: 6 }]
+                        labels: localState.classes.map(c=>c.name),
+                        datasets: [{ label: 'Students', data: localState.classes.map(c=>localState.students.filter(s=>s.classId===c.id).length), backgroundColor: currentUser.themeColor || '#6366f1', borderRadius: 6 }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#1f2937' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } } }
                 });
@@ -376,24 +354,30 @@
 
             if(tab === 'classes') {
                 title.innerText = 'Classes & Subjects';
-                const myClasses = db.classes.filter(c => c.institutionId === currentUser.id);
+                await refreshData();
                 content.innerHTML = `
                     <div class="glass-panel p-6 rounded-2xl mb-6 fade-in flex gap-4">
                         <input id="new-class" class="input-field" placeholder="Class Name (e.g. Grade 10-A)">
                         <button onclick="addClass()" class="btn-primary flex-shrink-0">Add Class</button>
                     </div>
-                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">${myClasses.map(c => `
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">${localState.classes.map(c => `
                         <div class="glass-panel p-6 rounded-2xl group relative hover:border-slate-500 transition">
-                            <div class="flex justify-between items-start mb-4"><h3 class="text-lg font-bold" style="color:var(--text-main)">${c.name}</h3><button onclick="deleteItem('class','${c.id}')" class="text-slate-600 hover:text-red-400 transition"><i class="fas fa-trash"></i></button></div>
-                            <button onclick="manageSubjects('${c.id}')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-indigo-300 transition border border-white/5">Manage ${db.subjects.filter(s=>s.classId===c.id).length} Subjects</button>
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-lg font-bold" style="color:var(--text-main)">${c.name}</h3>
+                                <div class="flex gap-2">
+                                    <button onclick="editItem('classes','${c.id}','${c.name}')" class="text-slate-600 hover:text-blue-400 transition"><i class="fas fa-edit"></i></button>
+                                    <button onclick="deleteItem('classes','${c.id}')" class="text-slate-600 hover:text-red-400 transition"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                            <button onclick="manageSubjects('${c.id}')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-indigo-300 transition border border-white/5">Manage ${localState.subjects.filter(s=>s.classId===c.id).length} Subjects</button>
                         </div>`).join('') || '<div class="text-slate-500 p-4 col-span-3 text-center">No classes found. Add one above.</div>'}
                     </div>`;
             }
 
             if(tab === 'students') {
                 title.innerText = 'Student Directory';
-                const classes = db.classes.filter(c => c.institutionId === currentUser.id);
-                const opts = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+                await refreshData();
+                const opts = localState.classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
                 
                 content.innerHTML = `
                     <div class="grid lg:grid-cols-3 gap-6 mb-6 fade-in h-[calc(100vh-180px)]">
@@ -422,21 +406,7 @@
                         <div class="glass-panel rounded-2xl lg:col-span-2 overflow-hidden flex flex-col h-full">
                             <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex flex-wrap gap-2 items-center">
                                 <input id="s-search" onkeyup="renderStudentList()" class="input-field bg-transparent border-0 flex-1 min-w-[150px]" placeholder="Search students...">
-                                <select id="s-filter-class" onchange="renderStudentList()" class="input-field w-auto text-xs py-2">
-                                    <option value="">All Classes</option>
-                                    ${opts}
-                                </select>
-                                <select id="s-sort" onchange="renderStudentList()" class="input-field w-auto text-xs py-2">
-                                    <option value="name_asc">Name (A-Z)</option>
-                                    <option value="name_desc">Name (Z-A)</option>
-                                    <option value="adm_asc">Adm No (Asc)</option>
-                                    <option value="adm_desc">Adm No (Desc)</option>
-                                </select>
-                                <button onclick="openPromoteModal()" id="btn-promote" class="hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition">Promote</button>
-                            </div>
-                            <div class="px-6 py-2 bg-slate-900/80 text-[10px] uppercase font-bold text-slate-500 flex items-center gap-3 border-b border-slate-800">
-                                <input type="checkbox" id="check-all" class="rounded bg-slate-800 border-slate-700" onchange="toggleSelectAll(this)"> 
-                                <span>Select All</span>
+                                <select id="s-filter-class" onchange="renderStudentList()" class="input-field w-auto text-xs py-2"><option value="">All Classes</option>${opts}</select>
                             </div>
                             <div class="flex-1 overflow-y-auto p-0" id="student-list"></div>
                         </div>
@@ -446,33 +416,46 @@
 
             if(tab === 'exams') {
                 title.innerText = 'Exams';
+                await refreshData();
                 content.innerHTML = `
-                    <div class="glass-panel p-6 rounded-2xl mb-6 fade-in flex gap-4">
-                        <input id="new-exam" class="input-field" placeholder="Exam Title (e.g. Finals 2024)">
-                        <button onclick="addExam()" class="btn-primary flex-shrink-0">Create</button>
+                    <div class="glass-panel p-6 rounded-2xl mb-6 fade-in flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-grow">
+                            <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Exam Title</label>
+                            <input id="new-exam" class="input-field" placeholder="e.g. Finals 2024">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Result Publish Date</label>
+                            <input id="new-exam-date" type="datetime-local" class="input-field text-slate-400" style="color-scheme: dark;">
+                        </div>
+                        <button onclick="addExam()" class="btn-primary flex-shrink-0 h-[46px]">Create Exam</button>
                     </div>
-                    <div class="space-y-3 fade-in">${db.exams.filter(e=>e.institutionId===currentUser.id).map(e=>`
+                    <div class="space-y-3 fade-in">${localState.exams.map(e=> {
+                        const d = e.publishDate ? new Date(e.publishDate).toLocaleString() : 'Immediate';
+                        return `
                         <div class="glass-panel p-4 rounded-xl flex justify-between items-center group">
-                            <span class="font-bold" style="color:var(--text-main)">${e.name}</span>
-                            <div class="flex gap-2 opacity-50 group-hover:opacity-100 transition">
-                                <button onclick="openEditExam('${e.id}')" class="text-slate-400 hover:text-white p-2"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteItem('exam','${e.id}')" class="text-slate-600 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
+                            <div>
+                                <span class="font-bold block" style="color:var(--text-main)">${e.name}</span>
+                                <span class="text-[10px] text-slate-500 font-mono"><i class="fas fa-clock mr-1"></i> Published: ${d}</span>
                             </div>
-                        </div>`).join('')}
+                            <div class="flex gap-2 opacity-50 group-hover:opacity-100 transition">
+                                <button onclick="editItem('exams','${e.id}')" class="text-slate-600 hover:text-blue-400 p-2"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteItem('exams','${e.id}')" class="text-slate-600 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>`;
+                    }).join('')}
                     </div>`;
             }
 
             if(tab === 'publish') {
                 title.innerText = 'Result Entry';
-                const myClasses = db.classes.filter(c => c.institutionId === currentUser.id);
-                const myExams = db.exams.filter(e => e.institutionId === currentUser.id);
+                await refreshData();
                 content.innerHTML = `
                     <div class="glass-panel p-8 rounded-2xl max-w-3xl mx-auto fade-in text-center border-t-4 border-indigo-500">
                         <h3 class="text-2xl font-bold mb-2" style="color:var(--text-main)">Publish Results</h3>
-                        <p class="text-slate-400 mb-6">Select exam and class to enter marks.</p>
+                        <p class="text-slate-400 mb-6">Select exam and class to enter marks. Existing marks will be loaded automatically.</p>
                         <div class="grid md:grid-cols-2 gap-4 mb-6">
-                            <select id="pub-exam" class="input-field cursor-pointer"><option value="">Select Exam</option>${myExams.map(e=>`<option value="${e.id}">${e.name}</option>`)}</select>
-                            <select id="pub-class" class="input-field cursor-pointer"><option value="">Select Class</option>${myClasses.map(c=>`<option value="${c.id}">${c.name}</option>`)}</select>
+                            <select id="pub-exam" class="input-field cursor-pointer"><option value="">Select Exam</option>${localState.exams.map(e=>`<option value="${e.id}">${e.name}</option>`)}</select>
+                            <select id="pub-class" class="input-field cursor-pointer"><option value="">Select Class</option>${localState.classes.map(c=>`<option value="${c.id}">${c.name}</option>`)}</select>
                         </div>
                         <button onclick="loadResultGrid()" class="btn-primary px-10 py-3 rounded-xl shadow-lg">Load Console</button>
                     </div>
@@ -507,259 +490,501 @@
             }
         }
 
-        // --- CORE FUNCTIONS (CRUD) ---
-        function addClass(){const n=$('new-class').value;if(n){const db=getDB();db.classes.push({id:genID(),institutionId:currentUser.id,name:n});saveDB(db);showToast("Class Added");renderTab('classes');}}
-        function addStudent(){
-            const n=$('s-name').value, a=$('s-adm').value, c=$('s-class').value, d=$('s-dob').value;
-            if(n&&a&&c){const db=getDB();if(db.students.some(s=>s.institutionId===currentUser.id&&s.admissionNo===a))return showToast("ID already exists","error");db.students.push({id:genID(),institutionId:currentUser.id,classId:c,name:n,admissionNo:a,dob:d});saveDB(db);showToast("Student Registered");renderTab('students');}
+        // --- UNIVERSAL EDIT FUNCTION ---
+        function editItem(type, id) {
+            $('modal-overlay').classList.remove('hidden');
+            $('modal-title').innerText = `Edit ${type.slice(0, -1)}`; 
+            
+            // Find item in local cache
+            const item = type === 'subjects' 
+                ? localState.subjects.find(s => s.id === id) 
+                : localState[type].find(x => x.id === id);
+                
+            let html = '';
+            
+            if(type === 'classes') {
+                html = `<div class="space-y-4">
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Name</label><input id="edit-val-name" class="input-field" value="${item.name}"></div>
+                    <button onclick="saveEdit('${type}', '${id}')" class="w-full btn-primary">Save Changes</button>
+                </div>`;
+            } 
+            else if(type === 'students') {
+                const classOpts = localState.classes.map(c => `<option value="${c.id}" ${c.id === item.classId ? 'selected' : ''}>${c.name}</option>`).join('');
+                html = `<div class="space-y-4">
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Full Name</label><input id="edit-val-name" class="input-field" value="${item.name}"></div>
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Admission No</label><input id="edit-val-adm" class="input-field" value="${item.admissionNo}"></div>
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Date of Birth</label><input id="edit-val-dob" type="date" class="input-field text-slate-400" value="${item.dob || ''}"></div>
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Class</label><select id="edit-val-class" class="input-field text-slate-400">${classOpts}</select></div>
+                    <button onclick="saveEdit('${type}', '${id}')" class="w-full btn-primary">Save Changes</button>
+                </div>`;
+            }
+            else if(type === 'exams') {
+                // Convert UTC date to local datetime-local string
+                let dateVal = '';
+                if(item.publishDate) {
+                    const d = new Date(item.publishDate);
+                    dateVal = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+                }
+                html = `<div class="space-y-4">
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Exam Name</label><input id="edit-val-name" class="input-field" value="${item.name}"></div>
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Publish Date</label><input id="edit-val-date" type="datetime-local" class="input-field text-slate-400" style="color-scheme: dark;" value="${dateVal}"></div>
+                    <button onclick="saveEdit('${type}', '${id}')" class="w-full btn-primary">Save Changes</button>
+                </div>`;
+            }
+            else if(type === 'subjects') {
+                html = `<div class="space-y-4">
+                    <div><label class="text-xs font-bold text-slate-500 uppercase">Subject Name</label><input id="edit-sub-name" class="input-field" value="${item.name}"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-xs font-bold text-slate-500 uppercase">Total Marks</label><input id="edit-sub-full" type="number" class="input-field" value="${item.fullMarks}"></div>
+                        <div><label class="text-xs font-bold text-slate-500 uppercase">Pass Marks</label><input id="edit-sub-pass" type="number" class="input-field" value="${item.passMarks}"></div>
+                    </div>
+                    <input type="hidden" id="edit-sub-cid" value="${item.classId}">
+                    <button onclick="saveEdit('subjects', '${id}')" class="w-full btn-primary">Update Subject</button>
+                </div>`;
+            }
+            
+            $('modal-body').innerHTML = html;
+        }
+
+        async function saveEdit(type, id) {
+            showLoader(true);
+            let updateData = {};
+            
+            if(type === 'classes') {
+                updateData = { name: $('edit-val-name').value };
+            } 
+            else if(type === 'students') {
+                updateData = { 
+                    name: $('edit-val-name').value, 
+                    admissionNo: $('edit-val-adm').value,
+                    dob: $('edit-val-dob').value,
+                    classId: $('edit-val-class').value
+                };
+            }
+            else if(type === 'exams') {
+                const d = $('edit-val-date').value;
+                updateData = { 
+                    name: $('edit-val-name').value, 
+                    publishDate: d ? new Date(d).toISOString() : new Date().toISOString()
+                };
+            }
+            else if(type === 'subjects') {
+                updateData = { 
+                    name: $('edit-sub-name').value, 
+                    fullMarks: Number($('edit-sub-full').value), 
+                    passMarks: Number($('edit-sub-pass').value) 
+                };
+            }
+            
+            await db.collection(type).doc(id).update(updateData);
+            await refreshData();
+            
+            $('modal-overlay').classList.add('hidden');
+            showLoader(false);
+            showToast("Updated Successfully");
+            
+            if(type === 'subjects') {
+                manageSubjects($('edit-sub-cid').value);
+            } else {
+                await renderTab(type);
+            }
         }
         
-        // --- ENHANCED STUDENT LIST (FILTER/SORT/CHECKBOX) ---
+        function closeModal() { $('modal-overlay').classList.add('hidden'); }
+
+        // --- CRUD ACTIONS ---
+        async function addClass() {
+            const n = $('new-class').value;
+            if(n) {
+                showLoader(true);
+                await db.collection('classes').add({ institutionId: currentUser.id, name: n, createdAt: new Date().toISOString() });
+                await renderTab('classes');
+                showLoader(false);
+                showToast("Class Added");
+            }
+        }
+
+        async function addStudent() {
+            const n=$('s-name').value, a=$('s-adm').value, c=$('s-class').value, d=$('s-dob').value;
+            if(n&&a&&c) {
+                showLoader(true);
+                if(localState.students.some(s => s.admissionNo === a)) { showLoader(false); return showToast("Admission No exists", "error"); }
+                await db.collection('students').add({ institutionId: currentUser.id, name: n, admissionNo: a, classId: c, dob: d, password: a });
+                await renderTab('students');
+                showLoader(false);
+                showToast("Student Added");
+            }
+        }
+
+        async function addExam() {
+            const n = $('new-exam').value;
+            const d = $('new-exam-date').value;
+            if(n) {
+                showLoader(true);
+                const pubDate = d ? new Date(d).toISOString() : new Date().toISOString();
+                await db.collection('exams').add({ institutionId: currentUser.id, name: n, publishDate: pubDate });
+                await renderTab('exams');
+                showLoader(false);
+                showToast("Exam Created");
+            }
+        }
+
+        async function deleteItem(col, id) {
+            if(confirm("Permanently Delete?")) {
+                showLoader(true);
+                await db.collection(col).doc(id).delete();
+                const activeTab = document.querySelector('.nav-item.active').getAttribute('onclick').match(/'(.*)'/)[1];
+                await renderTab(activeTab);
+                showLoader(false);
+                showToast("Deleted");
+            }
+        }
+
+        // --- STUDENT LIST ---
         function renderStudentList() {
-            const db = getDB();
-            let list = db.students.filter(s => s.institutionId === currentUser.id);
-            
+            let list = [...localState.students];
             const filterClass = $('s-filter-class') ? $('s-filter-class').value : '';
             const search = $('s-search') ? $('s-search').value.toLowerCase() : '';
+            
             if (filterClass) list = list.filter(s => s.classId === filterClass);
             if (search) list = list.filter(s => s.name.toLowerCase().includes(search) || s.admissionNo.toLowerCase().includes(search));
 
-            const sort = $('s-sort') ? $('s-sort').value : 'name_asc';
-            list.sort((a, b) => {
-                if (sort === 'name_asc') return a.name.localeCompare(b.name);
-                if (sort === 'name_desc') return b.name.localeCompare(a.name);
-                if (sort === 'adm_asc') return a.admissionNo.localeCompare(b.admissionNo);
-                if (sort === 'adm_desc') return b.admissionNo.localeCompare(a.admissionNo);
-                return 0;
-            });
+            const container = $('student-list');
+            if(list.length === 0) { container.innerHTML = '<div class="p-8 text-center text-slate-500">No students found.</div>'; return; }
 
-            const listContainer = $('student-list');
-            if(list.length === 0) { listContainer.innerHTML = '<div class="p-8 text-center text-slate-500 text-xs">No students found matching criteria.</div>'; return; }
-
-            listContainer.innerHTML = `<div class="divide-y divide-slate-800">${list.map(s => {
-                const cls = db.classes.find(c=>c.id===s.classId)?.name || 'N/A';
-                return `<div class="p-4 flex justify-between items-center hover:bg-slate-800/50 transition group px-6">
-                    <div class="flex items-center gap-4">
-                        <input type="checkbox" class="stu-check rounded bg-slate-800 border-slate-700" value="${s.id}" onchange="updateBulkState()">
-                        <div><p class="font-bold text-sm" style="color:var(--text-main)">${s.name}</p><p class="text-[10px] text-slate-500 font-mono">${s.admissionNo} • <span class="text-indigo-400">${cls}</span></p></div>
+            container.innerHTML = `<div class="divide-y divide-slate-800">${list.map(s => {
+                const cls = localState.classes.find(c=>c.id===s.classId)?.name || 'N/A';
+                return `<div class="p-4 flex justify-between items-center hover:bg-slate-800/50 transition px-6">
+                    <div><p class="font-bold text-sm" style="color:var(--text-main)">${s.name}</p><p class="text-[10px] text-slate-500 font-mono">${s.admissionNo} • <span class="text-indigo-400">${cls}</span></p></div>
+                    <div class="flex gap-2">
+                        <button onclick="editItem('students','${s.id}')" class="p-2 text-slate-600 hover:text-blue-400 bg-slate-900/50 rounded transition"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteItem('students','${s.id}')" class="p-2 text-red-400 bg-red-900/20 rounded hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash"></i></button>
                     </div>
-                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition"><button onclick="openEditStudent('${s.id}')" class="p-2 text-slate-400 hover:text-white bg-slate-800 rounded"><i class="fas fa-edit"></i></button><button onclick="deleteItem('student','${s.id}')" class="p-2 text-red-400 bg-red-900/20 rounded hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash"></i></button></div>
                 </div>`;
             }).join('')}</div>`;
-            
-            updateBulkState();
         }
 
-        // --- BULK OPERATIONS ---
-        function toggleSelectAll(checkbox) { document.querySelectorAll('.stu-check').forEach(c => c.checked = checkbox.checked); updateBulkState(); }
-        function updateBulkState() {
-            const count = document.querySelectorAll('.stu-check:checked').length;
-            const btn = $('btn-promote');
-            if(btn) { if (count > 0) { btn.classList.remove('hidden'); btn.innerText = `Promote (${count})`; } else { btn.classList.add('hidden'); } }
+        // --- SUBJECTS ---
+        function manageSubjects(cid) { 
+            $('modal-overlay').classList.remove('hidden'); 
+            $('modal-title').innerText = "Manage Subjects"; 
+            renderSubjectModal(cid); 
         }
-        function openPromoteModal() {
-            const db = getDB(); const classes = db.classes.filter(c => c.institutionId === currentUser.id);
-            const select = $('promote-target-class');
-            select.innerHTML = `<option value="">Select New Class</option>` + classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            $('promote-modal').classList.remove('hidden');
-        }
-        function confirmPromote() {
-            const targetClassId = $('promote-target-class').value;
-            if (!targetClassId) return showToast("Please select a class", "error");
-            const selectedIds = Array.from(document.querySelectorAll('.stu-check:checked')).map(cb => cb.value);
-            const db = getDB(); let count = 0;
-            db.students.forEach(s => { if (selectedIds.includes(s.id)) { s.classId = targetClassId; count++; } });
-            saveDB(db); showToast(`Promoted ${count} Students Successfully`); $('promote-modal').classList.add('hidden'); renderStudentList();
+        
+        function renderSubjectModal(cid, defFull='100', defPass='33') {
+            const subs = localState.subjects.filter(s => s.classId === cid);
+            $('modal-body').innerHTML = `
+                <div class="flex flex-col gap-3 mb-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-3"><label class="text-[10px] uppercase font-bold text-slate-500">Subject Name</label><input id="sb-n" class="input-field text-xs" placeholder="e.g. Mathematics"></div>
+                        <div><label class="text-[10px] uppercase font-bold text-slate-500">Total Marks</label><input id="sb-f" type="number" class="input-field text-xs" value="${defFull}"></div>
+                        <div><label class="text-[10px] uppercase font-bold text-slate-500">Pass Mark</label><input id="sb-p" type="number" class="input-field text-xs" value="${defPass}"></div>
+                        <div class="flex items-end"><button onclick="addSub('${cid}')" class="w-full btn-primary text-xs py-2.5 rounded-lg"><i class="fas fa-plus"></i> Add</button></div>
+                    </div>
+                </div>
+                <div class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                    ${subs.map(s => `<div class="flex justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 text-xs items-center group">
+                        <span class="font-bold text-slate-300">${s.name} <span class="text-slate-500 font-normal ml-1">(Max: ${s.fullMarks})</span></span>
+                        <div class="flex gap-2">
+                            <button onclick="editItem('subjects', '${s.id}')" class="text-slate-500 hover:text-blue-400"><i class="fas fa-edit"></i></button>
+                            <button onclick="delSub('${s.id}','${cid}')" class="text-slate-500 hover:text-red-400"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>`).join('')}
+                </div>`;
         }
 
-        // --- OTHER UTILS ---
-        function filterStudents(){ renderStudentList(); }
-        function addExam(){const n=$('new-exam').value;if(n){const db=getDB();db.exams.push({id:genID(),institutionId:currentUser.id,name:n});saveDB(db);renderTab('exams');}}
-        function deleteItem(t,id){if(confirm("Delete this item?")){const db=getDB();if(t==='class'){db.classes=db.classes.filter(x=>x.id!==id);db.subjects=db.subjects.filter(s=>s.classId!==id);}if(t==='student')db.students=db.students.filter(x=>x.id!==id);if(t==='exam')db.exams=db.exams.filter(x=>x.id!==id);saveDB(db);renderTab(t==='class'?'classes':t==='student'?'students':'exams');}}
-
-        function openEditExam(id) {
-            const db = getDB(); const e = db.exams.find(x => x.id === id);
-            if(e) {
-                $('modal-overlay').classList.remove('hidden'); $('modal-title').innerText = "Edit Exam";
-                $('modal-body').innerHTML = `<div class="space-y-4"><input type="hidden" id="edit-exam-id" value="${id}"><div><label class="text-xs font-bold text-slate-500 uppercase">Exam Title</label><input id="edit-exam-name" class="input-field mt-1" value="${e.name}"></div><button onclick="saveExamEdit()" class="w-full btn-primary py-3 rounded-xl">Save Changes</button></div>`;
+        async function addSub(cid) {
+            const n=$('sb-n').value, f=$('sb-f').value, p=$('sb-p').value;
+            if(n) {
+                await db.collection('subjects').add({ institutionId: currentUser.id, classId: cid, name: n, fullMarks: Number(f), passMarks: Number(p) });
+                await refreshData(); 
+                renderSubjectModal(cid, f, p);
             }
         }
-        function saveExamEdit() {
-            const id = $('edit-exam-id').value; const name = $('edit-exam-name').value;
-            if(name) { const db = getDB(); const idx = db.exams.findIndex(x => x.id === id); if(idx !== -1) { db.exams[idx].name = name; saveDB(db); showToast("Exam Updated"); closeModal(); renderTab('exams'); } } else { showToast("Exam name cannot be empty", "error"); }
+        
+        async function delSub(sid, cid) {
+            await db.collection('subjects').doc(sid).delete();
+            await refreshData(); renderSubjectModal(cid);
         }
 
-        function manageSubjects(cid) { $('modal-overlay').classList.remove('hidden'); $('modal-title').innerText = "Manage Subjects"; renderSubjectModal(cid); }
-        function renderSubjectModal(cid) {
-            const db=getDB(); const subs=db.subjects.filter(s=>s.classId===cid);
-            $('modal-body').innerHTML=`<div class="flex flex-col gap-3 mb-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50"><div class="grid grid-cols-3 gap-2"><div class="col-span-3"><label class="text-[10px] uppercase font-bold text-slate-500">Subject Name</label><input id="sb-n" class="input-field text-xs" placeholder="e.g. Mathematics"></div><div><label class="text-[10px] uppercase font-bold text-slate-500">Total Marks</label><input id="sb-f" type="number" class="input-field text-xs" value="${lastSubConfig.full}"></div><div><label class="text-[10px] uppercase font-bold text-slate-500">Pass Mark</label><input id="sb-p" type="number" class="input-field text-xs" value="${lastSubConfig.pass}"></div><div class="flex items-end"><button onclick="addSub('${cid}')" class="w-full btn-primary text-xs py-2.5 rounded-lg"><i class="fas fa-plus"></i> Add</button></div></div></div><div class="space-y-2 max-h-60 overflow-y-auto pr-2">${subs.map(s=>`<div class="flex justify-between bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 text-xs items-center group hover:border-slate-500 transition"><span class="font-bold text-slate-300">${s.name} <span class="text-slate-500 font-normal ml-1">(Max: ${s.fullMarks}, Pass: ${s.passMarks})</span></span><button onclick="delSub('${s.id}','${cid}')" class="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash"></i></button></div>`).join('')}</div>`;
-        }
-        function addSub(cid){ const n=$('sb-n').value, f=$('sb-f').value, p=$('sb-p').value; if(n && f && p){ const db=getDB(); lastSubConfig = { full: f, pass: p }; db.subjects.push({id: genID(), classId: cid, name: n, fullMarks: Number(f), passMarks: Number(p)}); saveDB(db); renderSubjectModal(cid); } }
-        function delSub(s,c){const db=getDB();db.subjects=db.subjects.filter(x=>x.id!==s);saveDB(db);renderSubjectModal(c);}
-
-        function openEditStudent(id){
-            const db = getDB(); const s = db.students.find(x => x.id === id); 
-            const classes = db.classes.filter(c => c.institutionId === currentUser.id);
-            const classOpts = classes.map(c => `<option value="${c.id}" ${c.id === s.classId ? 'selected' : ''}>${c.name}</option>`).join('');
-
-            if(s){
-                $('modal-overlay').classList.remove('hidden'); $('modal-title').innerText = "Edit Student";
-                $('modal-body').innerHTML = `<div class="space-y-3"><input type="hidden" id="edit-s-id" value="${id}"><div><label class="text-xs uppercase font-bold text-slate-500">Name</label><input id="edit-s-name" class="input-field mt-1" value="${s.name}"></div><div><label class="text-xs uppercase font-bold text-slate-500">Admission No</label><input id="edit-s-adm" class="input-field mt-1" value="${s.admissionNo}"></div><div><label class="text-xs uppercase font-bold text-slate-500">Class</label><select id="edit-s-class" class="input-field mt-1">${classOpts}</select></div><div><label class="text-xs uppercase font-bold text-slate-500">DOB</label><input type="date" id="edit-s-dob" class="input-field mt-1" value="${s.dob}"></div><button onclick="saveStudentEdit()" class="w-full btn-primary py-3 rounded-xl mt-4">Save</button></div>`;
-            }
-        }
-        function saveStudentEdit(){
-            const id=$('edit-s-id').value; const db=getDB(); const i=db.students.findIndex(x=>x.id===id); 
-            if(i!==-1){ db.students[i].name=$('edit-s-name').value; db.students[i].admissionNo=$('edit-s-adm').value; db.students[i].classId=$('edit-s-class').value; db.students[i].dob=$('edit-s-dob').value; saveDB(db);showToast("Updated");closeModal();renderTab('students'); }
+        // --- BULK EXCEL & GRID & EXPORT ---
+        function downloadStudentTemplate() { 
+            const ws = XLSX.utils.aoa_to_sheet([["Full Name", "Admission No", "Date of Birth (YYYY-MM-DD)", "Class Name"]]); 
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Students"); 
+            XLSX.writeFile(wb, "Student_Template.xlsx"); 
         }
 
-        // --- EXCEL FUNCTIONS ---
-        function downloadStudentTemplate() { const headers = [["Full Name", "Admission No", "Date of Birth (YYYY-MM-DD)", "Class Name"]]; const ws = XLSX.utils.aoa_to_sheet(headers); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, "Student_Registration_Template.xlsx"); }
-        function exportStudents() { const db = getDB(); const students = db.students.filter(s => s.institutionId === currentUser.id).map(s => ({ "Full Name": s.name, "Admission No": s.admissionNo, "DOB": s.dob, "Class": db.classes.find(c => c.id === s.classId)?.name || 'Unknown' })); const ws = XLSX.utils.json_to_sheet(students); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "All_Students"); XLSX.writeFile(wb, "Student_Data_Export.xlsx"); }
+        function exportStudents() {
+            const data = localState.students.map(s => {
+                const cls = localState.classes.find(c => c.id === s.classId)?.name || 'N/A';
+                return { "Full Name": s.name, "Admission No": s.admissionNo, "Class": cls, "Date of Birth": s.dob || '' };
+            });
+            if(data.length === 0) return showToast("No students to export", "error");
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Student_Directory");
+            XLSX.writeFile(wb, "Student_Directory.xlsx");
+        }
+
         function bulkImport() {
-            const f=$('s-file').files[0]; if(!f) return; const r=new FileReader(); 
-            r.onload=e=>{
-                const w=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); const data = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]]); const db=getDB(); let addedCount = 0;
-                data.forEach(row => {
-                    const name = row['Full Name'] || row['Name']; const adm = row['Admission No'] || row['AdmissionNo']; const clsName = row['Class Name'] || row['Class']; const dob = row['Date of Birth (YYYY-MM-DD)'] || row['DOB'] || '';
-                    if(name && adm) {
-                        let classId = '';
-                        if(clsName) {
-                            const existingClass = db.classes.find(c => c.institutionId === currentUser.id && c.name.toLowerCase() === clsName.toLowerCase());
-                            if(existingClass) classId = existingClass.id;
-                            else { classId = genID(); db.classes.push({id: classId, institutionId: currentUser.id, name: clsName}); }
-                        }
-                        if(!db.students.some(s=>s.institutionId===currentUser.id && s.admissionNo==adm)) { db.students.push({id:genID(), institutionId:currentUser.id, classId:classId, name:String(name), admissionNo:String(adm), dob:String(dob)}); addedCount++; }
+            const f=$('s-file').files[0]; if(!f) return;
+            const r=new FileReader();
+            r.onload = async (e) => {
+                showLoader(true);
+                const w = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+                const data = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]]);
+                const batch = db.batch(); let count = 0;
+                for (const row of data) {
+                    const name = row['Full Name'] || row['Name']; const adm = row['Admission No'] || row['AdmissionNo']; const clsName = row['Class Name'] || row['Class'];
+                    if(name && adm && clsName) {
+                        let classId = localState.classes.find(c => c.name.toLowerCase() === clsName.toLowerCase())?.id;
+                        if(!classId) { const clsRef = db.collection('classes').doc(); batch.set(clsRef, { institutionId: currentUser.id, name: clsName }); classId = clsRef.id; }
+                        const ref = db.collection('students').doc();
+                        batch.set(ref, { institutionId: currentUser.id, name: String(name), admissionNo: String(adm), classId: classId, password: String(adm) });
+                        count++;
                     }
-                });
-                saveDB(db); showToast(`Imported ${addedCount} Students`); renderTab('students'); $('s-file').value = '';
-            };
-            r.readAsArrayBuffer(f);
-        }
-
-        function downloadMarksTemplate(cid, eid) {
-            const db = getDB(); const students = db.students.filter(s => s.classId === cid); const subjects = db.subjects.filter(s => s.classId === cid);
-            if(students.length === 0 || subjects.length === 0) return showToast("No data to export", "error");
-            const data = students.map(s => { const row = { "Admission No": s.admissionNo, "Name": s.name }; subjects.forEach(sub => row[sub.name] = ""); row["Attendance Days"] = ""; return row; });
-            const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Marks_Entry"); XLSX.writeFile(wb, `Marks_Template_${db.classes.find(c=>c.id===cid).name}.xlsx`);
-        }
-
-        function importMarks(fileInput) {
-            const f = fileInput.files[0]; if(!f) return; const r = new FileReader();
-            r.onload = e => {
-                const w = XLSX.read(new Uint8Array(e.target.result), {type:'array'}); const data = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]]); const db = getDB(); const cid = $('pub-class').value; const subjects = db.subjects.filter(s => s.classId === cid);
-                data.forEach(row => {
-                    const adm = row['Admission No']; const student = db.students.find(s => s.classId === cid && s.admissionNo == adm);
-                    if(student) {
-                        const sid = student.id;
-                        subjects.forEach(sub => { const val = row[sub.name]; if(val !== undefined) { const inp = document.querySelector(`.mark-input[data-sid="${sid}"][data-sub="${sub.id}"]`); if(inp) { inp.value = val; calcRow(inp); } } });
-                        const attVal = row['Attendance Days']; if(attVal !== undefined) { const attInp = document.querySelector(`.att-input[data-sid="${sid}"]`); if(attInp) { attInp.value = attVal; calcAttPerc(attInp); } }
-                    }
-                });
-                showToast("Data Imported. Please Save."); fileInput.value = '';
-            };
-            r.readAsArrayBuffer(f);
-        }
-
-        // --- GRID LOGIC ---
-        function loadResultGrid() {
-            const eid=$('pub-exam').value, cid=$('pub-class').value; if(!eid||!cid) return showToast("Select Exam & Class","error");
-            const db=getDB(); const stus=db.students.filter(s=>s.classId===cid); const subs=db.subjects.filter(s=>s.classId===cid); const res=db.results.filter(r=>r.examId===eid);
-            if(stus.length===0) return showToast("No students in this class","error"); if(subs.length===0) return showToast("No subjects defined","error");
-            const clsName = db.classes.find(c=>c.id===cid).name; const examName = db.exams.find(e=>e.id===eid).name; const existingTotalDays = res.length > 0 ? (res[0].totalDays || '') : '';
-
-            let html=`<div class="flex justify-between items-center mb-6"><div><h3 class="text-xl font-bold" style="color:var(--text-main)">${examName} <span class="text-slate-500 mx-2">/</span> ${clsName}</h3><p class="text-xs text-slate-400 mt-1">${stus.length} Students Enrolled</p></div><div class="flex items-center gap-3"><div class="flex gap-2 mr-4"><button onclick="downloadMarksTemplate('${cid}','${eid}')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-600 transition"><i class="fas fa-download mr-1"></i> Template</button><button onclick="$('marks-upload').click()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition shadow-lg"><i class="fas fa-upload mr-1"></i> Upload</button><input type="file" id="marks-upload" class="hidden" accept=".xlsx" onchange="importMarks(this)"></div><div class="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase">Days:</label><input type="number" id="global-total-days" class="w-12 bg-transparent text-center font-bold text-yellow-400 outline-none border-b border-slate-600 focus:border-yellow-400" value="${existingTotalDays}" placeholder="0" oninput="updateAllAttendance()"></div></div></div><div class="me-container shadow-2xl relative"><div class="overflow-x-auto"><table class="w-full text-left me-table"><thead><tr><th class="sticky left-0 bg-[#0f172a] z-20 w-48 border-r border-slate-800">Student Identity</th>${subs.map(s=>`<th class="text-center min-w-[100px] border-l border-slate-800/50">${s.name}<br><span class="text-[9px] opacity-50 font-normal">Max: ${s.fullMarks}</span></th>`).join('')}<th class="text-center w-24 border-l border-slate-800 text-yellow-500">Attendance</th><th class="text-center w-24 border-l border-slate-800">Preview</th></tr></thead><tbody class="divide-y divide-slate-800/50">`;
-            
-            stus.forEach(s=>{
-                const r=res.find(x=>x.studentId===s.id); const marks=r?r.subjectMarks:{}; const attDays=r?r.attendanceDays:'';
-                let isFail = false; subs.forEach(sub => { if((marks[sub.id]||0) < sub.passMarks) isFail = true; });
-                const statusClass = r ? (isFail ? 'rs-fail' : 'rs-pass') : 'rs-neutral';
-
-                html+=`<tr class="hover:bg-slate-800/30 transition relative group"><td class="p-3 sticky left-0 bg-[#0f172a] z-10 border-r border-slate-800"><div class="row-status ${statusClass}" id="rs-${s.id}"></div><div class="pl-3 font-bold text-sm" style="color:var(--text-main)">${s.name}</div><div class="pl-3 text-[10px] text-slate-500 font-mono">${s.admissionNo}</div></td>${subs.map(sub=>`<td class="border-l border-slate-800/50 p-1"><div class="mark-wrapper"><input type="number" class="mark-input ${(marks[sub.id]||0) < sub.passMarks ? 'fail-mark' : ''}" data-sid="${s.id}" data-sub="${sub.id}" data-max="${sub.fullMarks}" data-pass="${sub.passMarks}" value="${marks[sub.id]||''}" oninput="calcRow(this)"></div></td>`).join('')}<td class="border-l border-slate-800/50 p-1 text-center"><input type="number" class="mark-input att-input" data-sid="${s.id}" data-type="att" value="${attDays}" placeholder="Days"></td><td class="border-l border-slate-800/50 text-center p-1"><button onclick="previewTranscript('${s.id}')" class="p-2 text-slate-500 hover:text-white transition" title="Preview"><i class="fas fa-eye"></i></button></td></tr>`;
-            });
-            html+=`</tbody></table></div></div><div class="command-bar"><div class="flex gap-8"><div class="stat-group"><span class="stat-label">Students</span><span class="stat-val">${stus.length}</span></div><div class="stat-group"><span class="stat-label">Class Avg</span><span class="stat-val" id="live-avg">--</span></div><div class="stat-group"><span class="stat-label">Pass Rate</span><span class="stat-val text-emerald-400" id="live-pass">--%</span></div></div><button onclick="saveResults('${eid}','${cid}')" class="btn-primary px-8 py-3 rounded-xl shadow-lg flex items-center gap-2"><i class="fas fa-rocket"></i> Publish Results</button></div>`;
-            $('result-grid-container').innerHTML=html; updateLiveStats();
-        }
-
-        function calcRow(inp) {
-            const val = Number(inp.value); const max = Number(inp.dataset.max); const pass = Number(inp.dataset.pass); const sid = inp.dataset.sid;
-            if(val > max) inp.classList.add('invalid'); else inp.classList.remove('invalid');
-            if(val < pass) inp.classList.add('fail-mark'); else inp.classList.remove('fail-mark');
-            let isFail = false; document.querySelectorAll(`.mark-input[data-sid="${sid}"]:not([data-type="att"])`).forEach(i => { if(Number(i.value || 0) < Number(i.dataset.pass)) isFail = true; });
-            const statusDiv = $(`rs-${sid}`); statusDiv.className = `row-status ${isFail ? 'rs-fail' : 'rs-pass'}`;
-            updateLiveStats();
-        }
-
-        function updateLiveStats() {
-            const rows = document.querySelectorAll('tbody tr'); if(rows.length === 0) return;
-            let totalScore = 0, passCount = 0, count = 0;
-            rows.forEach(r => {
-                const statusDiv = r.querySelector('.row-status');
-                if(statusDiv) {
-                    if(statusDiv.classList.contains('rs-pass')) passCount++;
-                    let rowTotal = 0; r.querySelectorAll('.mark-input:not(.att-input)').forEach(i => rowTotal += Number(i.value||0));
-                    totalScore += rowTotal; count++;
                 }
-            });
-            if(count > 0) { $('live-avg').innerText = (totalScore / count).toFixed(1); $('live-pass').innerText = Math.round((passCount / count) * 100) + '%'; }
+                await batch.commit(); await renderTab('students'); showLoader(false); showToast(`Imported ${count} records`);
+            };
+            r.readAsArrayBuffer(f);
         }
 
-        function calcAttPerc(inp) {} function updateAllAttendance() {}
+        function importMarks() {
+            const f=$('mark-file').files[0]; if(!f) return;
+            const r=new FileReader();
+            r.onload = async (e) => {
+                showLoader(true);
+                const w = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+                const data = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]]);
+                
+                // Map uploaded data to input fields
+                data.forEach(row => {
+                    const adm = row['Admission No'] || row['AdmissionNo'];
+                    const att = row['Attendance'];
+                    const s = localState.students.find(stu => stu.admissionNo == adm);
+                    if(s) {
+                        if(att) { const attInput = document.querySelector(`.att-input[data-sid="${s.id}"]`); if(attInput) attInput.value = att; }
+                        localState.subjects.forEach(sub => {
+                            const val = row[sub.name];
+                            if(val !== undefined) {
+                                const inp = document.querySelector(`.mark-input:not(.att-input)[data-sid="${s.id}"][data-sub="${sub.id}"]`);
+                                if(inp) { inp.value = val; updateMarkStatus(inp); }
+                            }
+                        });
+                    }
+                });
+                showLoader(false); showToast("Data mapped! Click Publish to save.");
+            };
+            r.readAsArrayBuffer(f);
+        }
 
-        function saveResults(eid, cid) {
-            const totalDays = Number($('global-total-days').value) || 0; const db = getDB(); const studentData = {};
-            document.querySelectorAll('.mark-input').forEach(inp => { const sid = inp.dataset.sid; if (!studentData[sid]) studentData[sid] = { marks: {}, attendanceDays: 0 }; if (inp.dataset.type === 'att') studentData[sid].attendanceDays = Number(inp.value) || 0; else studentData[sid].marks[inp.dataset.sub] = Number(inp.value) || 0; });
-            db.results = db.results.filter(r => !(r.examId === eid && db.students.find(s => s.id === r.studentId)?.classId === cid));
-            const newResults = [];
-            Object.keys(studentData).forEach(sid => {
-                const d = studentData[sid]; const total = Object.values(d.marks).reduce((a, b) => a + b, 0); const attPerc = totalDays > 0 ? Number(((d.attendanceDays / totalDays) * 100).toFixed(1)) : 0;
-                let status = 'PASS'; db.subjects.filter(s => s.classId === cid).forEach(sub => { if ((d.marks[sub.id] || 0) < sub.passMarks) status = 'FAIL'; });
-                newResults.push({ id: genID(), examId: eid, studentId: sid, subjectMarks: d.marks, attendanceDays: d.attendanceDays, totalDays: totalDays, attendance: attPerc, total: total, status: status });
+        function exportResults() {
+            const eid=$('pub-exam').value, cid=$('pub-class').value;
+            const stus = localState.students.filter(s => s.classId === cid);
+            const subs = localState.subjects.filter(s => s.classId === cid);
+            const res = localState.results.filter(r => r.examId === eid);
+            
+            const data = stus.map(s => {
+                const r = res.find(x => x.studentId === s.id);
+                const marks = r ? r.subjectMarks : {};
+                const row = { "Admission No": s.admissionNo, "Name": s.name, "Attendance": r?.attendance || '' };
+                subs.forEach(sub => row[sub.name] = marks[sub.id] || '');
+                row["Total"] = r?.total || 0;
+                row["Rank"] = r?.rank || '-';
+                return row;
             });
-            newResults.sort((a, b) => b.total - a.total); newResults.forEach((r, i) => r.rank = i + 1);
-            db.results.push(...newResults); saveDB(db); showToast("Results Published & Ranked");
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Results");
+            XLSX.writeFile(wb, "Result_Sheet.xlsx");
+        }
+
+        function sortGrid(key) {
+            currentSort = { key, order: currentSort.key === key && currentSort.order === 'asc' ? 'desc' : 'asc' };
+            loadResultGrid(true); // reload with sort
+        }
+
+        function loadResultGrid(isSort=false) {
+            const eid=$('pub-exam').value, cid=$('pub-class').value;
+            if(!eid||!cid) return showToast("Select Exam & Class","error");
+            
+            let stus = localState.students.filter(s => s.classId === cid);
+            const subs = localState.subjects.filter(s => s.classId === cid);
+            const res = localState.results.filter(r => r.examId === eid);
+            const existingRes = res.find(r => r.totalAttendance);
+            const totalAtt = existingRes ? existingRes.totalAttendance : '';
+
+            // --- SORTING LOGIC ---
+            if(currentSort.key) {
+                // Map students to a temporary object with rank/marks for sorting
+                const mapped = stus.map(s => {
+                    const r = res.find(x => x.studentId === s.id);
+                    return { ...s, total: r?.total||0, att: Number(r?.attendance)||0, rank: r?.rank||9999 };
+                });
+
+                mapped.sort((a, b) => {
+                    let valA, valB;
+                    if(currentSort.key === 'rank') { 
+                        // Special logic for rank: Low rank number is better (1 is better than 2)
+                        // But if we sort by Total Marks (desc), it mimics rank
+                        if(a.total !== b.total) return currentSort.order === 'asc' ? b.total - a.total : a.total - b.total;
+                        return b.att - a.att; // Tie breaker: Attendance
+                    }
+                    if(currentSort.key === 'name') { valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); }
+                    if(currentSort.key === 'attendance') { valA = a.att; valB = b.att; }
+                    
+                    if(valA < valB) return currentSort.order === 'asc' ? -1 : 1;
+                    if(valA > valB) return currentSort.order === 'asc' ? 1 : -1;
+                    return 0;
+                });
+                stus = mapped; // Reorder stus based on sort
+            }
+
+            if(!stus.length) return showToast("No students in class", "error");
+            
+            let html=`
+                <div class="glass-panel p-4 mb-4 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <button onclick="$('mark-file').click()" class="btn-secondary text-xs"><i class="fas fa-file-upload mr-2"></i> Import Marks (Excel)</button>
+                        <button onclick="exportResults()" class="btn-secondary text-xs"><i class="fas fa-file-download mr-2"></i> Export Result Sheet</button>
+                        <input type="file" id="mark-file" hidden onchange="importMarks()" accept=".xlsx,.csv">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <h4 class="font-bold text-slate-400 uppercase text-xs">Total Working Days</h4>
+                        <input type="number" id="total-att" class="input-field w-32 text-center" value="${totalAtt}" placeholder="e.g. 200">
+                    </div>
+                </div>
+                <div class="me-container shadow-2xl relative"><div class="overflow-x-auto"><table class="w-full text-left me-table"><thead><tr>
+                    <th class="sticky left-0 bg-[#0f172a] z-20 w-48 border-r border-slate-800" onclick="sortGrid('name')">Student Identity <i class="fas fa-sort ml-1"></i></th>
+                    <th class="text-center w-24 border-r border-slate-800/50" onclick="sortGrid('attendance')">Attendance <i class="fas fa-sort ml-1"></i></th>
+                    ${subs.map(s=>`<th class="text-center min-w-[100px] border-l border-slate-800/50">${s.name}<br><span class="text-[9px] opacity-50 font-normal">Max: ${s.fullMarks}</span></th>`).join('')}
+                    <th class="text-center w-24 border-l border-slate-800" onclick="sortGrid('rank')">Rank <i class="fas fa-sort ml-1"></i></th>
+                    <th class="text-center w-24 border-l border-slate-800">Preview</th>
+                </tr></thead><tbody class="divide-y divide-slate-800/50">`;
+            
+            stus.forEach(s => {
+                const r = res.find(x => x.studentId === s.id);
+                const marks = r ? r.subjectMarks : {};
+                const att = r ? (r.attendance || '') : '';
+                
+                html += `<tr class="hover:bg-slate-800/30 transition relative group"><td class="p-3 sticky left-0 bg-[#0f172a] z-10 border-r border-slate-800"><div class="pl-3 font-bold text-sm" style="color:var(--text-main)">${s.name}</div><div class="pl-3 text-[10px] text-slate-500 font-mono">${s.admissionNo}</div></td>
+                <td class="p-1 border-r border-slate-800/50"><div class="mark-wrapper"><input type="number" class="mark-input att-input" data-sid="${s.id}" data-type="att" value="${att}"></div></td>
+                ${subs.map(sub=> {
+                    const val = marks[sub.id] || '';
+                    const isFail = val !== '' && Number(val) < sub.passMarks;
+                    return `<td class="border-l border-slate-800/50 p-1"><div class="mark-wrapper"><input type="number" class="mark-input ${isFail ? 'fail-mark' : ''}" data-sid="${s.id}" data-sub="${sub.id}" data-pass="${sub.passMarks}" value="${val}" oninput="updateMarkStatus(this)"></div></td>`;
+                }).join('')}
+                <td class="border-l border-slate-800/50 text-center font-bold text-white">${r?.rank || '-'}</td>
+                <td class="border-l border-slate-800/50 text-center p-1"><button onclick="previewTranscript('${s.id}')" class="p-2 text-slate-500 hover:text-white transition"><i class="fas fa-eye"></i></button></td></tr>`;
+            });
+            
+            html += `</tbody></table></div></div><div class="command-bar"><button onclick="saveResults('${eid}','${cid}')" class="btn-primary px-8 py-3 rounded-xl shadow-lg flex items-center gap-2"><i class="fas fa-rocket"></i> Publish Results</button></div>`;
+            $('result-grid-container').innerHTML = html;
+        }
+
+        function updateMarkStatus(input) {
+            const val = input.value;
+            const pass = Number(input.dataset.pass);
+            if(val !== '' && Number(val) < pass) input.classList.add('fail-mark');
+            else input.classList.remove('fail-mark');
+        }
+
+        async function saveResults(eid, cid) {
+            showLoader(true);
+            const batch = db.batch();
+            const markInputs = document.querySelectorAll('.mark-input:not(.att-input)');
+            const attInputs = document.querySelectorAll('.att-input');
+            const totalAtt = $('total-att').value;
+            const map = {}; 
+            
+            markInputs.forEach(i => { if(!map[i.dataset.sid]) map[i.dataset.sid] = { marks: {}, att: '' }; map[i.dataset.sid].marks[i.dataset.sub] = Number(i.value); });
+            attInputs.forEach(i => { if(!map[i.dataset.sid]) map[i.dataset.sid] = { marks: {}, att: '' }; map[i.dataset.sid].att = Number(i.value); });
+
+            // Prepare for Ranking
+            let rankingData = [];
+            Object.keys(map).forEach(sid => {
+                const marks = map[sid].marks;
+                const total = Object.values(marks).reduce((a,b)=>a+b, 0);
+                rankingData.push({ sid, total, att: map[sid].att });
+            });
+
+            // Sort: Total Desc, then Att Desc
+            rankingData.sort((a,b) => {
+                if(b.total !== a.total) return b.total - a.total;
+                return b.att - a.att;
+            });
+
+            // Assign Rank with Tie Logic
+            let rank = 1;
+            for(let i=0; i<rankingData.length; i++) {
+                if(i > 0 && rankingData[i].total === rankingData[i-1].total && rankingData[i].att === rankingData[i-1].att) {
+                    rankingData[i].rank = rankingData[i-1].rank;
+                } else {
+                    rankingData[i].rank = i + 1;
+                }
+            }
+
+            // Save
+            const oldRes = localState.results.filter(r => r.examId === eid && localState.students.find(s=>s.id === r.studentId)?.classId === cid);
+            oldRes.forEach(r => batch.delete(db.collection('results').doc(r.id)));
+
+            rankingData.forEach(d => {
+                const docRef = db.collection('results').doc();
+                batch.set(docRef, { 
+                    institutionId: currentUser.id, examId: eid, studentId: d.sid, 
+                    subjectMarks: map[d.sid].marks, total: d.total, 
+                    attendance: d.att, totalAttendance: totalAtt, rank: d.rank
+                });
+            });
+
+            await batch.commit();
+            await refreshData(); // Refresh local cache to get new ranks
+            loadResultGrid(); // Re-render grid to show ranks
+            showLoader(false);
+            showToast("Results Published & Ranked");
         }
 
         function previewTranscript(sid) {
-            const db = getDB(); const s = db.students.find(x => x.id === sid); const eid = $('pub-exam').value; const exam = db.exams.find(e => e.id === eid);
-            const inputs = document.querySelectorAll(`input[data-sid="${sid}"]`); const marks = {}; let attDays = 0;
-            inputs.forEach(inp => { if(inp.dataset.sub) marks[inp.dataset.sub] = Number(inp.value)||0; else attDays = Number(inp.value)||0; });
-            const totalDays = Number($('global-total-days').value)||0; const attPerc = totalDays>0 ? ((attDays/totalDays)*100).toFixed(1) : 0;
-            let total = 0, maxTotal = 0; let rows = '';
-            Object.entries(marks).forEach(([subId, score]) => {
-                const sub = db.subjects.find(sb=>sb.id===subId);
-                if(sub) {
-                    total += score; maxTotal += Number(sub.fullMarks); const pct = (score / sub.fullMarks) * 100;
-                    let grade = 'F'; if(pct >= 90) grade='A+'; else if(pct >= 80) grade='A'; else if(pct >= 70) grade='B'; else if(pct >= 60) grade='C'; else if(pct >= 50) grade='D';
-                    rows += `<tr><td>${sub.name}</td><td>${sub.fullMarks}</td><td>${sub.passMarks}</td><td>${score}</td><td style="font-weight:700">${grade}</td></tr>`;
-                }
+            const s = localState.students.find(x => x.id === sid);
+            const eid = $('pub-exam').value;
+            const inputs = document.querySelectorAll(`input[data-sid="${sid}"]:not(.att-input)`);
+            const attVal = document.querySelector(`input.att-input[data-sid="${sid}"]`)?.value || '0';
+            const totalAtt = $('total-att').value || '-';
+            
+            let total = 0, maxTotal = 0, rows = '';
+            inputs.forEach(inp => {
+                const sub = localState.subjects.find(sb => sb.id === inp.dataset.sub);
+                const score = Number(inp.value)||0;
+                total += score; maxTotal += sub.fullMarks;
+                rows += `<tr><td>${sub.name}</td><td>${sub.fullMarks}</td><td>${sub.passMarks}</td><td>${score}</td></tr>`;
             });
-            const finalPct = maxTotal > 0 ? ((total / maxTotal) * 100) : 0; const status = finalPct >= 50 ? 'PASS' : 'FAIL'; const clsName = status === 'PASS' ? 'pass' : 'fail';
-            let appreciation = "Good effort shown in studies."; let motivation = "Keep working hard!";
-            if(finalPct >= 90) { appreciation = "Exceptional performance! Outstanding mastery."; motivation = "Your dedication is inspiring. Keep setting the bar high!"; }
-            else if(finalPct >= 80) { appreciation = "Excellent work! Strong grasp of concepts."; motivation = "Consistency is key. Continue this momentum."; }
-            else if(finalPct >= 70) { appreciation = "Very Good. Steady progress made."; motivation = "Believe in your potential, you can do even more."; }
-            else if(finalPct >= 60) { appreciation = "Good performance. On the right track."; motivation = "With more focus, you can achieve excellent results."; }
-            else if(finalPct < 50) { appreciation = "You have completed the term."; motivation = "Every setback is a setup for a comeback."; }
-            $('modal-overlay').classList.remove('hidden'); $('modal-title').innerText = "Preview Marksheet";
-            $('modal-body').innerHTML = `
-                <div class="a4-container"><div class="transcript-frame"><div class="watermark-layer"><img src="${currentUser.profileImage}" class="watermark-logo"></div><div class="transcript-inner"><div class="content-layer">
-                    <div class="text-center mb-6"><div class="inline-block mb-2 p-1 border border-slate-200 rounded-full"><div class="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"><img src="${currentUser.profileImage}" class="max-w-full max-h-full object-contain"></div></div><h1 class="text-3xl font-black uppercase mk-header-font text-slate-900 mb-1 text-center">${currentUser.name}</h1><p class="text-xs text-slate-500 uppercase tracking-widest font-bold text-center">${currentUser.address || ''}</p><div class="mt-4 border-b border-slate-900 w-1/3 mx-auto"></div><p class="mt-1 text-sm font-serif italic text-slate-700 text-center">Official Statement of Results</p></div>
-                    <div class="info-grid"><div class="flex flex-col gap-2"><div class="info-row"><span class="info-label">Candidate</span><span class="info-val">${s.name}</span></div><div class="info-row"><span class="info-label">ID No</span><span class="info-val" style="font-family:monospace">${s.admissionNo}</span></div></div><div class="flex flex-col gap-2"><div class="info-row"><span class="info-label">Exam</span><span class="info-val">${exam.name}</span></div><div class="info-row"><span class="info-label">Date</span><span class="info-val">${new Date().toLocaleDateString()}</span></div></div></div>
-                    <table class="mk-table mb-auto"><thead><tr><th>Subject</th><th width="12%">Max</th><th width="12%">Pass</th><th width="12%">Obtained</th><th width="12%">Grade</th></tr></thead><tbody id="mk-body">${rows}</tbody><tfoot><tr class="bg-slate-100"><td colspan="3" class="text-right uppercase font-bold pr-4 py-3 text-xs">Grand Total</td><td class="text-center text-lg font-bold text-slate-900 py-3">${total} / ${maxTotal}</td><td class="text-center font-bold text-slate-900 py-3"></td></tr></tfoot></table>
-                    <div class="feedback-section"><div class="appreciation-box"><h4><i class="fas fa-quote-left mr-2 opacity-50"></i>Insight</h4><p class="appr-text">"${appreciation}"</p><p class="motiv-text">"${motivation}"</p></div><div class="stats-box"><div class="stat-row"><span class="stat-label">Attendance</span><span class="stat-val">${attPerc}%</span></div><div class="stat-row mt-2"><span class="stat-label">Result</span><div class="stamp-status ${clsName}">${status}</div></div></div></div>
-                    <div class="doc-footer"><div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight"><span class="font-bold">KEY:</span> A+ (90+) A (80-89) B (70-79) C (60-69) D (50-59) F (<50)</div><div class="text-center w-40"><div class="h-16 flex items-end justify-center mb-1">${currentUser.signatureImage ? `<img src="${currentUser.signatureImage}" class="max-h-full max-w-full object-contain filter grayscale contrast-125">` : '<div class="h-8 border-b border-black w-32"></div>'}</div><p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p></div></div>
-                </div></div></div></div><div class="text-center mt-4"><button onclick="closeModal()" class="btn-primary">Close Preview</button></div>`;
-        }
-        function closeModal(){$('modal-overlay').classList.add('hidden');}
 
-        function saveSettings() {
-            const db=getDB(); const idx=db.institutions.findIndex(i=>i.id===currentUser.id); const i=db.institutions[idx];
-            i.name=$('set-name').value; i.tagline=$('set-tag').value; i.aboutText=$('set-about').value; i.contactEmail=$('set-email').value; i.contactPhone=$('set-phone').value; i.address=$('set-addr').value;
-            const l=$('set-logo').files[0], s=$('set-sig').files[0];
-            const read=f=>new Promise(r=>{const rd=new FileReader();rd.onload=e=>r(e.target.result);rd.readAsDataURL(f);});
-            const p=[]; if(l)p.push(read(l).then(d=>i.profileImage=d)); if(s)p.push(read(s).then(d=>i.signatureImage=d));
-            Promise.all(p).then(()=>{saveDB(db); currentUser=i; showToast("Saved"); location.reload();});
+            $('modal-overlay').classList.remove('hidden');
+            $('modal-body').innerHTML = `
+                <div class="a4-container"><div class="transcript-frame"><div class="transcript-inner">
+                    <div class="text-center mb-6"><h1 class="text-3xl font-black uppercase mk-header-font text-slate-900 mb-1 text-center">${currentUser.name}</h1><p class="text-xs text-slate-500 uppercase tracking-widest font-bold text-center">Official Transcript</p></div>
+                    <div class="info-grid mb-4"><div class="flex flex-col gap-2"><div><span class="font-bold">Student:</span> ${s.name}</div><div><span class="font-bold">ID:</span> ${s.admissionNo}</div></div></div>
+                    <table class="mk-table mt-4"><thead><tr><th>Subject</th><th>Max</th><th>Pass</th><th>Score</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="bg-slate-100"><td colspan="3" class="text-right font-bold pr-4">Total</td><td class="text-center font-bold">${total} / ${maxTotal}</td></tr></tfoot></table>
+                    <div class="mt-8 text-sm font-bold border-t pt-4">Attendance: ${attVal} / ${totalAtt} Days</div>
+                </div></div></div>
+                <div class="text-center mt-4"><button onclick="closeModal()" class="btn-primary">Close</button></div>`;
         }
+        
+        async function saveSettings() {
+            showLoader(true);
+            const data = {
+                name: $('set-name').value, tagline: $('set-tag').value, aboutText: $('set-about').value,
+                contactEmail: $('set-email').value, contactPhone: $('set-phone').value, address: $('set-addr').value
+            };
+            const logo = $('set-logo').files[0];
+            const sig = $('set-sig').files[0];
+            if(logo) data.profileImage = await uploadImage(`logos/${currentUser.id}_logo`, await readFile(logo));
+            if(sig) data.signatureImage = await uploadImage(`logos/${currentUser.id}_sig`, await readFile(sig));
+            await db.collection('institutions').doc(currentUser.id).update(data);
+            localStorage.setItem(SESSION_KEY, JSON.stringify({ ...currentUser, ...data }));
+            showLoader(false); showToast("Profile Updated");
+        }
+
+        const readFile = (file) => new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
     </script>
 </body>
 </html>

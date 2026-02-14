@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
     <style>
         /* --- DYNAMIC THEME SYSTEM --- */
         :root {
@@ -30,6 +34,8 @@
             color: var(--text-main); 
             overflow-x: hidden; 
             transition: background-color 0.5s ease, color 0.5s ease;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
         }
 
         /* Animated Background */
@@ -81,16 +87,19 @@
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="flex flex-col min-h-screen selection:bg-indigo-500/30">
+<body class="selection:bg-indigo-500/30">
 
     <div id="page-loader" class="loader-container">
-        <div class="spinner"></div>
+        <div class="text-center">
+            <div class="spinner mb-6 mx-auto"></div>
+            <p class="text-xs font-bold tracking-[0.3em] opacity-50 animate-pulse text-white">ESTABLISHING CONNECTION</p>
+        </div>
     </div>
 
     <div class="fixed inset-0 pointer-events-none">
         <div class="bg-orb top-0 left-0 w-[600px] h-[600px]" style="background: var(--brand); opacity: 0.15;"></div>
         <div class="bg-orb bottom-0 right-0 w-[500px] h-[500px]" style="background: var(--brand); animation-delay: -5s; opacity: 0.1;"></div>
-        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.04]"></div>
+        <div class="absolute inset-0 opacity-[0.04]" style="background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');"></div>
     </div>
 
     <nav class="fixed top-0 w-full z-50 glass-nav">
@@ -206,9 +215,19 @@
     </footer>
 
     <script>
-        const DB_KEY = 'GradeWise_db_v1';
-        
-        // --- 10 PROFESSIONAL THEMES (Matched with Owner Console) ---
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDluJn6c-9vr3jJUEIl3FJ2l4HD4W1M2k",
+            authDomain: "gradewise-app.firebaseapp.com",
+            projectId: "gradewise-app",
+            storageBucket: "gradewise-app.firebasestorage.app",
+            messagingSenderId: "938150156100",
+            appId: "1:938150156100:web:219cfacbf0452ddfe2e911"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- THEME LIBRARY (Same as Owner) ---
         const THEMES = {
             'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.7)', text: '#f8fafc', muted: '#94a3b8' },
             'midnight_blue': { bg: '#0b1121', glass: 'rgba(30, 41, 59, 0.7)', text: '#f0f9ff', muted: '#94a3b8' },
@@ -222,47 +241,41 @@
             'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.7)', text: '#f8fafc', muted: '#cbd5e1' }
         };
 
-        window.onload = function() {
+        // --- INIT ---
+        window.onload = async () => {
             const loader = document.getElementById('page-loader');
             
-            // 1. Get ID
-            const params = new URLSearchParams(window.location.search);
-            const instId = params.get('id');
-
-            if(!instId) {
-                showError("Missing Institution Identifier");
-                return;
-            }
-
-            // 2. Fetch Data
             try {
-                const db = JSON.parse(localStorage.getItem(DB_KEY) || '{"institutions":[]}');
-                const inst = db.institutions.find(i => i.id === instId);
+                // 1. Get ID from URL
+                const params = new URLSearchParams(window.location.search);
+                const id = params.get('id');
 
-                // 3. Validation
-                if(!inst) { showError("Institution Not Found"); return; }
-                if(inst.isActive === false) { showError("Account Suspended"); return; }
+                if (!id) throw new Error("ID Missing");
 
-                // 4. Apply Dynamic Branding & Theme
-                applyTheme(inst);
+                // 2. Fetch Data from Firebase
+                const doc = await db.collection('institutions').doc(id).get();
+                if (!doc.exists) throw new Error("Not Found");
+
+                const data = doc.data();
+                if (data.isActive === false) throw new Error("Suspended");
+
+                // 3. Apply Branding
+                document.getElementById('nav-name').innerText = data.name;
+                document.getElementById('hero-name-highlight').innerText = data.name;
+                document.title = `${data.name} | Portal`;
                 
-                // 5. Populate Content
-                document.getElementById('nav-name').innerText = inst.name;
-                document.getElementById('hero-name-highlight').innerText = inst.name;
-                document.title = `${inst.name} | Portal`;
-                
-                if(inst.tagline) document.getElementById('hero-tagline').innerText = inst.tagline;
-                if(inst.aboutText) document.getElementById('inst-about').innerText = inst.aboutText;
+                if(data.tagline) document.getElementById('hero-tagline').innerText = data.tagline;
+                if(data.aboutText) document.getElementById('inst-about').innerText = data.aboutText;
 
-                // 6. Handle Logo
-                if(inst.profileImage) {
+                // 4. Handle Logo
+                if(data.profileImage) {
                     const navLogo = document.getElementById('nav-logo');
-                    navLogo.src = inst.profileImage;
+                    navLogo.src = data.profileImage;
                     navLogo.classList.remove('hidden');
                     document.getElementById('nav-icon').classList.add('hidden');
                 }
 
-                // 7. Contact Details
+                // 5. Contact Details (New)
                 const contactList = document.getElementById('inst-contact-list');
                 const addContact = (icon, text, href) => {
                     if(!text) return;
@@ -271,21 +284,23 @@
                     contactList.innerHTML += `<li class="flex items-start gap-3"><div class="mt-0.5 min-w-[20px] text-center"><i class="fas ${icon}" style="color:var(--brand)"></i></div> ${content}</li>`;
                 };
 
-                addContact('fa-envelope', inst.contactEmail, `mailto:${inst.contactEmail}`);
-                addContact('fa-phone', inst.contactPhone, `tel:${inst.contactPhone}`);
-                addContact('fa-map-marker-alt', inst.address);
-                if(inst.websiteUrl) addContact('fa-globe', 'Visit Official Website', inst.websiteUrl);
+                addContact('fa-envelope', data.contactEmail, `mailto:${data.contactEmail}`);
+                addContact('fa-phone', data.contactPhone, `tel:${data.contactPhone}`);
+                addContact('fa-map-marker-alt', data.address);
+                if(data.websiteUrl) addContact('fa-globe', 'Visit Official Website', data.websiteUrl);
 
-                // 8. Smart Links
+                // 6. Apply Theme
+                applyTheme(data);
+
+                // 7. Setup Links
                 document.getElementById('link-student').onclick = (e) => {
                     e.preventDefault();
-                    localStorage.setItem('grasewise_last_school', inst.id); 
-                    window.location.href = 'student.html'; 
+                    localStorage.setItem('grasewise_last_school', doc.id); // Save ID for student page
+                    window.location.href = `student.html?id=${doc.id}`; 
                 };
                 document.getElementById('link-admin').onclick = (e) => {
                     e.preventDefault();
-                    localStorage.setItem('GradeWise_session_v1', JSON.stringify({id: inst.id, role: 'inst'}));
-                    window.location.href = 'admin.html';
+                    window.location.href = `admin.html`; // Admin handles its own login
                 };
 
                 // Reveal Content

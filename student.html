@@ -13,10 +13,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
     <style>
-        /* --- DYNAMIC THEME SYSTEM --- */
+        /* --- ORIGINAL DESIGN SYSTEM --- */
         :root {
-            /* Default: Deep Space */
             --bg-dark: #020617;
             --bg-panel: rgba(15, 23, 42, 0.85);
             --primary: #6366f1; 
@@ -31,12 +34,16 @@
             font-family: 'Inter', sans-serif; 
             background-color: var(--bg-dark); 
             color: var(--text-main);
-            background-image: 
-                radial-gradient(at 0% 0%, var(--primary-glow) 0px, transparent 50%), 
-                radial-gradient(at 100% 100%, rgba(255,255,255,0.05) 0px, transparent 50%);
-            background-attachment: fixed;
+            overflow-x: hidden;
             transition: background-color 0.5s ease, color 0.5s ease;
         }
+
+        /* Animated Background */
+        .bg-orb { 
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; z-index: -1; 
+            animation: float 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20px, -20px) scale(1.1); } }
         
         /* Glassmorphism */
         .glass-panel { 
@@ -69,9 +76,9 @@
         .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
         .nav-item.active { background: var(--primary-glow); color: white; border-left-color: var(--primary); }
 
-        /* --- PROFESSIONAL TRANSCRIPT DESIGN --- */
+        /* --- PROFESSIONAL A4 TRANSCRIPT DESIGN --- */
         .a4-container {
-            width: 210mm; height: 297mm; padding: 0;
+            width: 210mm; min-height: 297mm; padding: 0;
             background: #fff; color: #1e293b;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             position: relative; overflow: hidden; margin: 2rem auto;
@@ -81,13 +88,13 @@
         .transcript-frame { 
             border: 8px solid #1e293b; 
             outline: 2px solid #94a3b8; outline-offset: -12px;
-            height: 100%; margin: 8mm; 
+            height: 100%; min-height: 290mm; margin: 8mm; 
             position: relative; display: flex; flex-direction: column;
             background: #fff;
         }
 
         .transcript-inner {
-            padding: 8mm 12mm; height: 100%; display: flex; flex-direction: column;
+            padding: 8mm 12mm; flex: 1; display: flex; flex-direction: column;
             background-image: radial-gradient(#f1f5f9 1px, transparent 1px);
             background-size: 25px 25px;
         }
@@ -98,10 +105,10 @@
         }
         .watermark-logo { width: 50%; filter: grayscale(100%); }
 
-        .content-layer { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; }
+        .content-layer { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; }
 
         .mk-serif { font-family: 'Playfair Display', serif; }
-        .mk-script { font-family: 'Dancing Script', cursive; }
+        .mk-header-font { font-family: 'Cinzel', serif; }
 
         /* Student Info Grid */
         .info-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; margin: 1.5rem 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
@@ -118,7 +125,7 @@
         .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; color: #334155; text-align: center; font-weight: 500; font-size: 0.9rem; }
         .mk-table td:first-child { text-align: left; padding-left: 10px; font-weight: 600; color: #0f172a; }
         
-        /* New Feedback Section */
+        /* Feedback Section */
         .feedback-section {
             margin-top: auto;
             display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem;
@@ -160,9 +167,15 @@
         <p class="text-sm font-bold tracking-widest animate-pulse font-mono">PROCESSING...</p>
     </div>
 
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="bg-orb top-0 left-0 w-[600px] h-[600px]" style="background: var(--primary); opacity: 0.15;"></div>
+        <div class="bg-orb bottom-0 right-0 w-[500px] h-[500px]" style="background: var(--primary); animation-delay: -5s; opacity: 0.1;"></div>
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.04]"></div>
+    </div>
+
     <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
-    <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]">
+    <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="glass-panel p-10 rounded-2xl shadow-2xl w-full max-w-sm relative z-10 border-t border-white/10">
             <div class="text-center mb-10">
                 <h1 class="text-2xl font-bold tracking-tight text-white">Student Portal</h1>
@@ -178,8 +191,8 @@
         </div>
     </section>
 
-    <div id="view-dashboard" class="hidden w-full h-full flex bg-[#020617]">
-        <aside class="w-72 bg-[#0b1121] border-r border-slate-800 flex flex-col flex-shrink-0 z-40" style="background-color: var(--bg-dark);">
+    <div id="view-dashboard" class="hidden w-full h-full flex">
+        <aside class="w-72 bg-[#0b1121]/90 border-r border-slate-800 flex flex-col flex-shrink-0 z-40 backdrop-blur-md">
             <div class="p-8 border-b border-slate-800/50 flex items-center gap-4">
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold border border-slate-700 overflow-hidden shadow-lg relative" style="background-color: var(--primary);">
                     <img id="sb-logo" class="w-full h-full object-cover hidden">
@@ -211,7 +224,7 @@
         </aside>
 
         <main class="flex-1 flex flex-col min-w-0 relative">
-            <header class="h-20 border-b border-slate-800 bg-[#020617]/80 backdrop-blur-md flex items-center justify-between px-10 sticky top-0 z-30" style="background-color: var(--bg-panel);">
+            <header class="h-20 border-b border-slate-800 bg-[#020617]/80 backdrop-blur-md flex items-center justify-between px-10 sticky top-0 z-30">
                 <div><h2 id="page-title" class="text-xl font-bold tracking-tight" style="color:var(--text-main)">Overview</h2></div>
                 <div class="flex items-center gap-4">
                     <button onclick="viewPublicPage()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition text-xs font-bold flex items-center gap-2">
@@ -239,10 +252,10 @@
                         <div class="content-layer">
                             <div class="text-center mb-6">
                                 <div class="inline-block mb-2 p-1 border border-slate-200 rounded-full"><div class="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"><img id="mk-logo" class="max-w-full max-h-full object-contain"></div></div>
-                                <h1 id="mk-school" class="text-3xl font-black uppercase mk-serif text-slate-900 tracking-wide mb-1">School Name</h1>
+                                <h1 id="mk-school" class="text-3xl font-black uppercase mk-header-font text-slate-900 tracking-wide mb-1">School Name</h1>
                                 <p id="mk-addr" class="text-xs text-slate-500 uppercase tracking-widest font-bold">Institution Address</p>
                                 <div class="mt-4 border-b border-slate-900 w-1/3 mx-auto"></div>
-                                <p class="mt-1 text-sm font-serif italic text-slate-700">Official Statement of Results</p>
+                                <p class="mt-1 text-sm font-serif italic text-slate-700">Official Statement of Marks</p>
                             </div>
 
                             <div class="info-grid">
@@ -259,29 +272,35 @@
                             </div>
 
                             <table class="mk-table mb-auto">
-                                <thead><tr><th>Subject Description</th><th width="12%">Max Marks</th><th width="12%">Pass Marks</th><th width="12%">Obtained</th><th width="12%">Grade</th></tr></thead>
+                                <thead><tr><th class="text-left pl-6">Subject</th><th width="15%">Max Marks</th><th width="15%">Pass Marks</th><th width="15%">Obtained</th></tr></thead>
                                 <tbody id="mk-body"></tbody>
-                                <tfoot><tr class="bg-slate-100"><td colspan="3" class="text-right uppercase font-bold pr-4 py-3 text-xs">Grand Total Score</td><td id="mk-total" class="text-center text-lg font-bold text-slate-900 py-3">0</td><td id="mk-grade-final" class="text-center font-bold text-slate-900 py-3"></td></tr></tfoot>
+                                <tfoot>
+                                    <tr class="bg-slate-100 text-slate-900">
+                                        <td class="text-left font-black pl-6 text-sm uppercase tracking-widest">Grand Total</td>
+                                        <td colspan="2" class="text-center font-bold text-slate-500 text-xs uppercase" id="mk-total-words">Zero Only</td>
+                                        <td id="mk-total" class="text-center text-lg font-bold text-slate-900 py-3">0</td>
+                                    </tr>
+                                </tfoot>
                             </table>
 
                             <div class="feedback-section">
                                 <div class="appreciation-box">
                                     <h4><i class="fas fa-quote-left mr-2 opacity-50"></i>Performance Insight</h4>
-                                    <p id="mk-appreciation" class="appr-text">"Outstanding performance. The student has shown exceptional understanding."</p>
-                                    <p id="mk-motivation" class="motiv-text">"Keep pushing your limits, the sky is the limit!"</p>
+                                    <p id="mk-appreciation" class="appr-text">"Outstanding performance."</p>
+                                    <p id="mk-motivation" class="motiv-text">"Keep pushing your limits!"</p>
                                 </div>
                                 
                                 <div class="stats-box">
-                                    <div class="stat-row"><span class="stat-label">Class Rank</span><span id="mk-rank" class="stat-val">#1</span></div>
-                                    <div class="stat-row"><span class="stat-label">Attendance</span><span id="mk-att" class="stat-val">98%</span></div>
-                                    <div class="stat-row mt-2"><span class="stat-label">Final Result</span><div id="mk-stamp-container"></div></div>
+                                    <div class="stat-row"><span class="stat-label">Percentage</span><span id="mk-pct" class="stat-val">0%</span></div>
+                                    <div class="stat-row"><span class="stat-label">Division</span><span id="mk-div" class="stat-val text-sm">N/A</span></div>
+                                    <div class="stat-row"><span class="stat-label">Attendance</span><span id="mk-att" class="stat-val">N/A</span></div>
+                                    <div class="stat-row mt-2"><span class="stat-label">Result</span><div id="mk-stamp-container"></div></div>
                                 </div>
                             </div>
 
                             <div class="doc-footer">
                                 <div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">
-                                    <span class="font-bold">GRADING KEY:</span> A+ (90-100) • A (80-89) • B (70-79) • C (60-69) • D (50-59) • F (<50)<br>
-                                    This document is digitally generated by GraseWise Academic System. No signature required.
+                                    This document is digitally generated by GradeWise. No physical signature required.
                                 </div>
                                 <div class="principal-box">
                                     <div class="h-16 flex items-end justify-center mb-1"><img id="mk-sig" class="max-h-full max-w-full object-contain filter grayscale contrast-125"></div>
@@ -298,12 +317,24 @@
     </div>
 
     <script>
-        const DB_KEY = 'GradeWise_db_v1';
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDluJn6c-9vr3jJUEIl3FJ2l4HD4W1M2k",
+            authDomain: "gradewise-app.firebaseapp.com",
+            projectId: "gradewise-app",
+            storageBucket: "gradewise-app.firebasestorage.app",
+            messagingSenderId: "938150156100",
+            appId: "1:938150156100:web:219cfacbf0452ddfe2e911"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         const SESSION_KEY = 'grasewise_student_session';
         let currentStudent = null;
         let currentInst = null;
+        let cache = { subjects: [], exams: [], classes: [] };
 
-        // --- THEME LIBRARY (Same as Owner/Admin) ---
+        // --- THEME LIBRARY ---
         const THEMES = {
             'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.75)', text: '#f8fafc', muted: '#94a3b8' },
             'midnight_blue': { bg: '#0b1121', glass: 'rgba(30, 41, 59, 0.75)', text: '#f0f9ff', muted: '#94a3b8' },
@@ -318,16 +349,7 @@
         };
 
         const $ = id => document.getElementById(id);
-        const getDB = () => {
-            const data = localStorage.getItem(DB_KEY);
-            if (!data) return { institutions: [], classes: [], students: [], exams: [], results: [], subjects: [] };
-            const parsed = JSON.parse(data);
-            ['institutions','classes','students','exams','results','subjects'].forEach(k => { if(!parsed[k]) parsed[k] = []; });
-            return parsed;
-        };
-        const saveDB = (data) => localStorage.setItem(DB_KEY, JSON.stringify(data));
         const showLoader = (show) => $('global-loader').classList.toggle('hidden', !show);
-        
         function showToast(msg, type='success') {
             const el = document.createElement('div');
             el.className = `px-5 py-4 rounded-xl shadow-2xl border backdrop-blur-md text-sm font-bold flex items-center gap-3 fade-in ${type==='success'?'bg-emerald-500/10 border-emerald-500/30 text-emerald-400':'bg-red-500/10 border-red-500/30 text-red-400'}`;
@@ -336,17 +358,48 @@
             setTimeout(() => el.remove(), 4000);
         }
 
-        // --- INIT & THEME ENGINE ---
+        // --- INIT ---
         window.onload = () => { checkSession(); };
+
+        async function checkSession() {
+            const s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+            if(s && s.id) {
+                try {
+                    const doc = await db.collection('students').doc(s.id).get();
+                    if(doc.exists) {
+                        currentStudent = { id: doc.id, ...doc.data() };
+                        await loadInstitution(currentStudent.institutionId);
+                        initDashboard();
+                        return;
+                    }
+                } catch(e) { console.error("Session Error", e); }
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const instId = urlParams.get('id') || localStorage.getItem('grasewise_last_school');
+            if(instId) {
+                await loadInstitution(instId);
+                $('login-inst').value = instId;
+                $('view-login').classList.remove('hidden');
+            } else window.location.href = 'index.html';
+        }
+
+        async function loadInstitution(id) {
+            try {
+                const doc = await db.collection('institutions').doc(id).get();
+                if(doc.exists) {
+                    currentInst = { id: doc.id, ...doc.data() };
+                    applyTheme(currentInst);
+                    localStorage.setItem('grasewise_last_school', id);
+                }
+            } catch(e) { console.error(e); }
+        }
 
         function applyTheme(inst) {
             const color = inst.themeColor || '#6366f1';
             const themeKey = inst.theme || 'deep_space';
             const t = THEMES[themeKey] || THEMES['deep_space'];
-
             const root = document.documentElement;
             root.style.setProperty('--primary', color);
-            root.style.setProperty('--primary-dark', adjustColor(color, -20));
             root.style.setProperty('--primary-glow', color + '40');
             root.style.setProperty('--bg-dark', t.bg);
             root.style.setProperty('--bg-panel', t.glass);
@@ -354,64 +407,36 @@
             root.style.setProperty('--text-muted', t.muted);
         }
 
-        function adjustColor(color, amount) {
-            if (!color.startsWith('#')) return color;
-            return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
-        }
-
-        function checkSession() {
-            const s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
-            if(s) {
-                const db = getDB();
-                const stu = db.students.find(x => x.id === s.id);
-                if(stu) {
-                    currentStudent = stu;
-                    currentInst = db.institutions.find(i => i.id === stu.institutionId);
-                    if(currentInst) { 
-                        applyTheme(currentInst);
-                        initDashboard(); 
-                        return; 
-                    }
-                }
-            }
-            const lastSchoolId = localStorage.getItem('grasewise_last_school');
-            if(!lastSchoolId) { window.location.href = 'index.html'; return; }
-
-            const db = getDB();
-            const inst = db.institutions.find(i => i.id === lastSchoolId);
-            if(inst) {
-                currentInst = inst;
-                applyTheme(inst);
-                $('login-inst').value = inst.id;
-                $('view-login').classList.remove('hidden');
-            } else { window.location.href = 'index.html'; }
-        }
-
         // --- AUTH ---
-        function handleLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
             const instId = $('login-inst').value;
             const uname = $('login-username').value;
             const pass = $('login-password').value;
             const btn = $('btn-login');
-
-            if(uname !== pass) return showToast("Credentials mismatch", "error");
-
+            if(!uname || !pass) return showToast("Enter credentials", "error");
             btn.innerHTML = 'Verifying...';
-            setTimeout(() => {
-                const db = getDB();
-                const stu = db.students.find(s => s.institutionId === instId && s.admissionNo === uname);
-                if(stu) {
-                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({id: stu.id}));
-                    currentStudent = stu;
-                    currentInst = db.institutions.find(i => i.id === stu.institutionId);
-                    applyTheme(currentInst);
+            try {
+                const snap = await db.collection('students').where('institutionId', '==', instId).where('admissionNo', '==', uname).where('password', '==', pass).get();
+                if(!snap.empty) {
+                    const doc = snap.docs[0];
+                    currentStudent = { id: doc.id, ...doc.data() };
+                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ id: doc.id }));
+                    await loadCacheData();
                     initDashboard();
-                } else {
-                    showToast("Student Not Found", "error");
-                    btn.innerHTML = 'Login';
-                }
-            }, 800);
+                } else { showToast("Student Not Found", "error"); btn.innerHTML = 'Login'; }
+            } catch(e) { console.error(e); showToast("Connection Error", "error"); btn.innerHTML = 'Login'; }
+        }
+
+        async function loadCacheData() {
+            const [c, e, s] = await Promise.all([
+                db.collection('classes').where('institutionId', '==', currentInst.id).get(),
+                db.collection('exams').where('institutionId', '==', currentInst.id).get(),
+                db.collection('subjects').where('institutionId', '==', currentInst.id).get()
+            ]);
+            cache.classes = c.docs.map(d => ({id: d.id, ...d.data()}));
+            cache.exams = e.docs.map(d => ({id: d.id, ...d.data()}));
+            cache.subjects = s.docs.map(d => ({id: d.id, ...d.data()}));
         }
 
         function logout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
@@ -433,11 +458,10 @@
             if(currentInst.profileImage) { $('sb-logo').src = currentInst.profileImage; $('sb-logo').classList.remove('hidden'); $('sb-icon').classList.add('hidden'); }
         }
 
-        function renderTab(tab) {
+        async function renderTab(tab) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.getAttribute('onclick').includes(tab)));
             const content = $('content-area');
             const title = $('page-title');
-            const db = getDB();
 
             if(tab === 'home') {
                 title.innerText = 'Overview';
@@ -454,11 +478,18 @@
 
             if(tab === 'results') {
                 title.innerText = 'Academic Records';
-                const results = db.results.filter(r => r.studentId === currentStudent.id && db.exams.some(e => e.id === r.examId));
-                if(results.length === 0) content.innerHTML = `<div class="glass-panel p-12 text-center text-slate-500">No results published yet.</div>`;
+                showLoader(true);
+                const snap = await db.collection('results').where('studentId', '==', currentStudent.id).get();
+                showLoader(false);
+                
+                if(snap.empty) content.innerHTML = `<div class="glass-panel p-12 text-center text-slate-500">No results published yet.</div>`;
                 else {
-                    content.innerHTML = `<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">${results.map(r => {
-                        const exam = db.exams.find(e => e.id === r.examId) || {name: 'Unknown'};
+                    content.innerHTML = `<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">${snap.docs.map(doc => {
+                        const r = {id: doc.id, ...doc.data()};
+                        const exam = cache.exams.find(e => e.id === r.examId) || {name: 'Unknown Exam'};
+                        const pubDate = exam.publishDate ? new Date(exam.publishDate) : new Date(0);
+                        if(pubDate > new Date()) return ''; 
+
                         return `<div class="glass-panel p-6 rounded-2xl relative overflow-hidden group hover:border-slate-500 transition">
                             <div class="flex justify-between items-start mb-6"><div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg" style="color:var(--primary)"><i class="fas fa-file-contract"></i></div><span class="px-2 py-1 rounded text-[10px] font-bold uppercase border" style="color:var(--primary); border-color:var(--primary-glow)">Published</span></div>
                             <h3 class="text-xl font-bold mb-2" style="color:var(--text-main)">${exam.name}</h3>
@@ -470,7 +501,7 @@
 
             if(tab === 'profile') {
                 title.innerText = 'Profile Settings';
-                const cls = db.classes.find(c => c.id === currentStudent.classId)?.name || 'N/A';
+                const cls = cache.classes.find(c => c.id === currentStudent.classId)?.name || 'N/A';
                 content.innerHTML = `
                     <div class="max-w-2xl mx-auto glass-panel p-8 rounded-2xl fade-in flex items-start gap-8 border-l-4" style="border-left-color: var(--primary);">
                         <div class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-3xl border-2 border-white/10 flex-shrink-0" style="color:var(--primary)"><i class="fas fa-user"></i></div>
@@ -488,43 +519,49 @@
             }
         }
 
-        // --- ACTIONS ---
-        function updateProfile() {
+        async function updateProfile() {
             try {
-                if (!currentStudent) { showToast("Session expired. Please login.", "error"); return; }
+                showLoader(true);
                 const name = $('pf-name').value;
                 const dob = $('pf-dob').value;
-                if(name && dob) {
-                    const db = getDB();
-                    const idx = db.students.findIndex(s => s.id === currentStudent.id);
-                    if(idx !== -1) {
-                        db.students[idx].name = name;
-                        db.students[idx].dob = dob;
-                        saveDB(db);
-                        currentStudent = db.students[idx]; 
-                        currentInst = db.institutions.find(i => i.id === currentStudent.institutionId);
-                        updateSidebar(); 
-                        showToast("Profile Updated Successfully");
-                    }
-                } else { showToast("Fields cannot be empty", "error"); }
-            } catch (e) { showToast("Update failed: " + e.message, "error"); }
+                await db.collection('students').doc(currentStudent.id).update({ name, dob });
+                currentStudent.name = name; 
+                currentStudent.dob = dob;
+                showLoader(false);
+                updateSidebar();
+                showToast("Profile Updated Successfully");
+            } catch (e) { showLoader(false); showToast("Update failed: " + e.message, "error"); }
         }
 
-        function getGrade(pct) { if(pct >= 90) return 'A+'; if(pct >= 80) return 'A'; if(pct >= 70) return 'B'; if(pct >= 60) return 'C'; if(pct >= 50) return 'D'; return 'F'; }
+        // --- HELPER FUNCTIONS ---
+        function numToWords(n) {
+            const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+            const b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
+            if ((n = n.toString()).length > 9) return 'Overflow';
+            let n_ = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+            if (!n_) return; 
+            let str = '';
+            str += (n_[1] != 0) ? (a[Number(n_[1])] || b[n_[1][0]] + ' ' + a[n_[1][1]]) + 'Crore ' : '';
+            str += (n_[2] != 0) ? (a[Number(n_[2])] || b[n_[2][0]] + ' ' + a[n_[2][1]]) + 'Lakh ' : '';
+            str += (n_[3] != 0) ? (a[Number(n_[3])] || b[n_[3][0]] + ' ' + a[n_[3][1]]) + 'Thousand ' : '';
+            str += (n_[4] != 0) ? (a[Number(n_[4])] || b[n_[4][0]] + ' ' + a[n_[4][1]]) + 'Hundred ' : '';
+            str += (n_[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n_[5])] || b[n_[5][0]] + ' ' + a[n_[5][1]]) : '';
+            return str.trim() ? str.trim() + " Only" : "Zero Only";
+        }
 
         // --- MARKSHEET LOGIC ---
-        function openMarksheet(rid) {
+        async function openMarksheet(rid) {
             try {
-                const db = getDB();
-                let inst = currentInst;
-                if(!inst && currentStudent) inst = db.institutions.find(i => i.id === currentStudent.institutionId);
-                if(!inst) inst = {name: 'Unknown School', address: 'Contact Admin'};
+                showLoader(true);
+                const doc = await db.collection('results').doc(rid).get();
+                showLoader(false);
+                
+                if(!doc.exists) return showToast("Result not found", "error");
+                const r = doc.data();
 
-                const r = db.results.find(x => x.id === rid);
-                if(!r) { showToast("Result Data Missing", "error"); return; }
-
-                const exam = (db.exams || []).find(e => e.id === r.examId) || {name: 'Unknown Exam'};
-                const cls = (db.classes || []).find(c => c.id === currentStudent.classId) || {name: 'N/A'};
+                const inst = currentInst;
+                const exam = cache.exams.find(e => e.id === r.examId) || {name: 'Unknown Exam'};
+                const cls = cache.classes.find(c => c.id === currentStudent.classId) || {name: 'N/A'};
 
                 $('mk-school').innerText = inst.name;
                 $('mk-addr').innerText = inst.address || '';
@@ -544,58 +581,58 @@
                 
                 $('mk-date').innerText = new Date().toLocaleDateString();
 
-                let rows = ''; let maxTotal = 0;
+                let rows = ''; let maxTotal = 0; let grandTotal = 0; let failFlag = false;
                 const sMarks = r.subjectMarks || {};
                 
                 Object.entries(sMarks).forEach(([sid, marks]) => {
-                    const sub = (db.subjects || []).find(s => s.id === sid);
+                    const sub = cache.subjects.find(s => s.id === sid);
                     if(sub) {
                         const full = Number(sub.fullMarks) || 100;
                         const pass = Number(sub.passMarks) || 33;
                         maxTotal += full;
-                        const pct = (marks / full) * 100;
-                        rows += `<tr><td>${sub.name}</td><td>${full}</td><td>${pass}</td><td style="font-weight:700; color:#0f172a">${marks}</td><td style="font-weight:700">${getGrade(pct)}</td></tr>`;
+                        grandTotal += Number(marks);
+                        if(Number(marks) < pass) failFlag = true;
+                        rows += `<tr>
+                            <td class="text-left font-bold pl-6 text-slate-800">${sub.name}</td>
+                            <td>${full}</td><td>${pass}</td>
+                            <td class="font-bold ${Number(marks) < pass ? 'text-red-600' : 'text-slate-900'}">${marks}</td>
+                        </tr>`;
                     }
                 });
                 
-                $('mk-body').innerHTML = rows || `<tr><td colspan="5" class="text-center py-4">No subjects found.</td></tr>`;
-                $('mk-total').innerText = `${r.total} / ${maxTotal}`;
-                const finalPct = maxTotal > 0 ? ((r.total / maxTotal) * 100).toFixed(1) : 0;
-                $('mk-grade-final').innerText = getGrade(finalPct);
+                $('mk-body').innerHTML = rows || `<tr><td colspan="4" class="text-center py-4">No subjects found.</td></tr>`;
+                $('mk-total').innerText = `${grandTotal} / ${maxTotal}`;
+                $('mk-total-words').innerText = numToWords(grandTotal);
                 
-                $('mk-rank').innerText = r.rank ? `#${r.rank}` : '-';
-                $('mk-att').innerText = r.attendance ? r.attendance + '%' : 'N/A';
+                const finalPct = maxTotal > 0 ? ((grandTotal / maxTotal) * 100).toFixed(1) : 0;
+                $('mk-pct').innerText = finalPct + '%';
+                $('mk-att').innerText = r.attendance ? r.attendance + (r.totalAttendance ? '/' + r.totalAttendance : '') : 'N/A';
 
-                const status = r.status || 'PASS';
-                const clsName = status === 'PASS' ? 'pass' : 'fail';
+                const status = failFlag ? 'FAIL' : 'PASS';
+                const clsName = failFlag ? 'fail' : 'pass';
                 $('mk-stamp-container').innerHTML = `<div class="stamp-status ${clsName}">${status}</div>`;
 
-                // Motivational/Appreciation Logic
-                let appreciation = "Good effort shown in studies.";
-                let motivation = "Keep working hard!";
-                
-                if(finalPct >= 90) {
-                    appreciation = "Exceptional performance! You have demonstrated outstanding mastery of the curriculum.";
-                    motivation = "Your dedication is truly inspiring. Keep setting the bar high!";
-                } else if(finalPct >= 80) {
-                    appreciation = "Excellent work! You have a strong grasp of the core concepts.";
-                    motivation = "Consistency is key. Continue this great momentum.";
-                } else if(finalPct >= 70) {
-                    appreciation = "Very Good. You are making steady progress in your academic journey.";
-                    motivation = "Believe in your potential, you are capable of even more.";
-                } else if(finalPct >= 60) {
-                    appreciation = "Good performance. You are on the right track.";
-                    motivation = "With a little more focus, you can achieve excellent results.";
-                } else {
-                    appreciation = "You have successfully completed the term.";
-                    motivation = "Every setback is a setup for a comeback. Keep trying!";
+                // Classification Logic
+                let div = "Fail";
+                if(!failFlag) {
+                    if(finalPct >= 75) div = "Distinction";
+                    else if(finalPct >= 60) div = "First Class";
+                    else if(finalPct >= 50) div = "Second Class";
+                    else div = "Pass Class";
                 }
+                $('mk-div').innerText = div;
+
+                // Motivational Text Logic
+                let appreciation = "Good effort."; let motivation = "Keep working hard!";
+                if(finalPct >= 90) { appreciation = "Exceptional performance!"; motivation = "Keep setting the bar high!"; }
+                else if(finalPct >= 80) { appreciation = "Excellent work!"; motivation = "Consistency is key."; }
+                else if(finalPct < 33) { appreciation = "Needs improvement."; motivation = "Don't give up, work harder!"; }
 
                 if($('mk-appreciation')) $('mk-appreciation').innerText = `"${appreciation}"`;
                 if($('mk-motivation')) $('mk-motivation').innerText = motivation;
 
                 $('marksheet-modal').classList.remove('hidden');
-            } catch (err) { console.error(err); showToast("Error: " + err.message, "error"); }
+            } catch (err) { console.error(err); showLoader(false); showToast("Error loading marksheet", "error"); }
         }
 
         function closeModal() { $('marksheet-modal').classList.add('hidden'); }

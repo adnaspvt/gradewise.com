@@ -10,8 +10,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
     <style>
-        /* --- DESIGN SYSTEM --- */
+        /* --- ORIGINAL DESIGN SYSTEM --- */
         :root {
             --bg-dark: #020617;
             --bg-card: #0f172a;
@@ -24,11 +29,11 @@
         
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-dark); color: var(--text-main); }
         
-        /* Glassmorphism */
+        /* Glassmorphism & Cards */
         .glass-panel { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.03); }
         .glass-card { background: linear-gradient(145deg, #0f172a, #0b1121); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
         
-        /* Inputs & Interactive Elements */
+        /* Inputs */
         .input-dark { 
             background: #020617; border: 1px solid #334155; color: white; padding: 12px 16px; 
             border-radius: 10px; width: 100%; outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -36,6 +41,7 @@
         }
         .input-dark:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
         
+        /* Buttons */
         .btn-gradient {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white; border: none; transition: transform 0.2s, box-shadow 0.2s;
@@ -43,7 +49,7 @@
         .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -5px var(--primary-glow); }
         .btn-gradient:active { transform: translateY(0); }
 
-        /* Sidebar Navigation */
+        /* Navigation */
         .nav-item { 
             display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 6px;
             border-radius: 12px; color: var(--text-muted); transition: 0.2s; cursor: pointer; font-weight: 500;
@@ -55,25 +61,26 @@
             color: var(--primary); border-left-color: var(--primary); 
         }
         
-        /* Animations */
+        /* Animations & Utilities */
         .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); }
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
         
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* Loader */
+        
         .loader { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
-        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body class="overflow-hidden h-screen flex text-sm selection:bg-blue-500/30">
+
+    <div id="global-loader" class="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="flex flex-col items-center">
+            <div class="loader mb-4"></div>
+            <p class="text-xs font-bold text-slate-400 tracking-widest animate-pulse">SYNCING WITH CLOUD...</p>
+        </div>
+    </div>
 
     <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
@@ -87,7 +94,7 @@
                 <h1 class="text-3xl font-bold tracking-tight text-white">Owner Portal</h1>
                 <p class="text-slate-400 text-sm mt-2">Identify yourself to continue.</p>
             </div>
-            <form onsubmit="handleLogin(event)" class="space-y-5">
+            <form id="login-form" class="space-y-5">
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-slate-500 uppercase ml-1">Identity</label>
                     <input id="login-id" class="input-dark" placeholder="Enter Owner ID">
@@ -96,7 +103,7 @@
                     <label class="text-xs font-bold text-slate-500 uppercase ml-1">Secure Key</label>
                     <input type="password" id="login-pass" class="input-dark" placeholder="••••••••••••">
                 </div>
-                <button id="btn-login" class="w-full py-4 btn-gradient rounded-xl font-bold text-sm tracking-wide shadow-lg mt-4">
+                <button type="submit" id="btn-login" class="w-full py-4 btn-gradient rounded-xl font-bold text-sm tracking-wide shadow-lg mt-4">
                     ACCESS DASHBOARD
                 </button>
             </form>
@@ -200,15 +207,28 @@
     </div>
 
     <script>
-        const DB_KEY = 'GradeWise_db_v1';
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDluJn6c-9vr3jJUEIl3FJ2l4HD4W1M2k",
+            authDomain: "gradewise-app.firebaseapp.com",
+            projectId: "gradewise-app",
+            storageBucket: "gradewise-app.firebasestorage.app",
+            messagingSenderId: "938150156100",
+            appId: "1:938150156100:web:219cfacbf0452ddfe2e911"
+        };
+
+        // Initialize Firebase (Compat)
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+
         const SESSION_KEY = 'GradeWise_owner_session';
         const CREDENTIALS = { id: 'owner', pass: 'admin123' };
 
         // --- HELPERS ---
         const $ = id => document.getElementById(id);
-        const getDB = () => JSON.parse(localStorage.getItem(DB_KEY) || '{"institutions":[], "students":[], "results":[], "exams":[], "siteConfig":{}}');
-        const saveDB = (data) => localStorage.setItem(DB_KEY, JSON.stringify(data));
-        const genID = () => '_' + Math.random().toString(36).substr(2, 9);
+        const showLoader = (show) => $('global-loader').classList.toggle('hidden', !show);
         
         function showToast(msg, type='success') {
             const el = document.createElement('div');
@@ -218,7 +238,17 @@
             setTimeout(() => el.remove(), 4000);
         }
 
-        // --- AUTHENTICATION ---
+        // --- AUTH & EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Attach Login Listener manually to ensure it works
+            const form = document.getElementById('login-form');
+            if(form) {
+                form.addEventListener('submit', handleLogin);
+            }
+            // Auto Login Check
+            if(localStorage.getItem(SESSION_KEY) === 'true') initDashboard();
+        });
+
         function handleLogin(e) {
             e.preventDefault();
             const btn = $('btn-login');
@@ -248,282 +278,300 @@
             window.location.reload();
         }
 
-        window.onload = () => { if(localStorage.getItem(SESSION_KEY) === 'true') initDashboard(); };
 
-        // --- TAB RENDERING ---
-        function renderTab(tab) {
+        // --- ADAPTER FUNCTIONS (Embedded for Compat) ---
+        async function fetchCollection(colName) {
+            const snap = await db.collection(colName).get();
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+
+        async function createDoc(colName, data) {
+            await db.collection(colName).add(data);
+        }
+
+        async function updateDocFunc(colName, id, data) {
+            await db.collection(colName).doc(id).update(data);
+        }
+
+        async function deleteDocFunc(colName, id) {
+            await db.collection(colName).doc(id).delete();
+        }
+
+        async function uploadImage(path, dataUrl) {
+            if(!dataUrl || !dataUrl.startsWith('data:')) return null;
+            const ref = storage.ref().child(path);
+            await ref.putString(dataUrl, 'data_url');
+            return await ref.getDownloadURL();
+        }
+
+        async function getSiteConfig() {
+            const doc = await db.collection('site_config').doc('main').get();
+            return doc.exists ? doc.data() : {};
+        }
+
+        async function saveSiteConfig(data) {
+            await db.collection('site_config').doc('main').set(data, { merge: true });
+        }
+
+
+        // --- DASHBOARD LOGIC ---
+        async function renderTab(tab) {
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.toggle('active', el.getAttribute('onclick').includes(tab));
             });
 
-            const db = getDB();
             const content = $('content-area');
             const title = $('page-title');
+            
+            showLoader(true);
 
-            // 1. OVERVIEW
-            if(tab === 'overview') {
-                title.innerText = 'System Analytics';
-                const instCount = db.institutions.length;
-                const stuCount = db.students ? db.students.length : 0;
-                
-                content.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in-up">
-                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
-                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition"></div>
-                            <div class="relative z-10">
-                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Institutions</p>
-                                <h3 class="text-4xl font-black text-white">${instCount}</h3>
-                                <p class="text-xs text-green-400 mt-2 flex items-center gap-1"><i class="fas fa-arrow-up"></i> Live Count</p>
-                            </div>
-                        </div>
-                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
-                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition"></div>
-                            <div class="relative z-10">
-                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Students</p>
-                                <h3 class="text-4xl font-black text-white">${stuCount}</h3>
-                                <p class="text-xs text-purple-400 mt-2">Across all schools</p>
-                            </div>
-                        </div>
-                        <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
-                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition"></div>
-                            <div class="relative z-10">
-                                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Active Accounts</p>
-                                <h3 class="text-4xl font-black text-white">${db.institutions.filter(i=>i.isActive!==false).length}</h3>
-                                <p class="text-xs text-slate-500 mt-2">Suspended: ${db.institutions.filter(i=>i.isActive===false).length}</p>
-                            </div>
-                        </div>
-                        <div class="bg-gradient-to-br from-blue-600 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-blue-500/20 text-white relative overflow-hidden">
-                            <div class="relative z-10">
-                                <p class="text-blue-100 text-xs font-bold uppercase tracking-wider mb-2">Database Health</p>
-                                <h3 class="text-2xl font-black">Good</h3>
-                                <p class="text-xs text-blue-200 mt-1 opacity-80">Storage: ${(JSON.stringify(db).length / 1024).toFixed(2)} KB</p>
-                            </div>
-                            <i class="fas fa-server absolute bottom-4 right-4 text-6xl opacity-20"></i>
-                        </div>
-                    </div>
+            try {
+                // 1. OVERVIEW
+                if(tab === 'overview') {
+                    title.innerText = 'System Analytics';
+                    const insts = await fetchCollection('institutions');
+                    const students = await fetchCollection('students');
+                    const exams = await fetchCollection('exams');
 
-                    <div class="grid lg:grid-cols-3 gap-8 fade-in-up" style="animation-delay: 0.1s">
-                        <div class="lg:col-span-2 glass-card p-8 rounded-2xl">
-                            <div class="flex justify-between items-center mb-6">
-                                <h4 class="font-bold text-white text-lg">Growth Trajectory</h4>
-                                <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">Real-time</span>
+                    const instCount = insts.length;
+                    const stuCount = students.length;
+                    
+                    content.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in-up">
+                            <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition"></div>
+                                <div class="relative z-10">
+                                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Institutions</p>
+                                    <h3 class="text-4xl font-black text-white">${instCount}</h3>
+                                    <p class="text-xs text-green-400 mt-2 flex items-center gap-1"><i class="fas fa-arrow-up"></i> Live Cloud Data</p>
+                                </div>
                             </div>
-                            <div class="h-64"><canvas id="mainChart"></canvas></div>
-                        </div>
-                        <div class="glass-card p-8 rounded-2xl flex flex-col justify-center">
-                            <h4 class="font-bold text-white text-lg mb-6 text-center">Entity Distribution</h4>
-                            <div class="h-48 relative w-full">
-                                <canvas id="pieChart"></canvas>
+                            <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition"></div>
+                                <div class="relative z-10">
+                                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Total Students</p>
+                                    <h3 class="text-4xl font-black text-white">${stuCount}</h3>
+                                    <p class="text-xs text-purple-400 mt-2">Across all schools</p>
+                                </div>
+                            </div>
+                            <div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition"></div>
+                                <div class="relative z-10">
+                                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Active Accounts</p>
+                                    <h3 class="text-4xl font-black text-white">${insts.filter(i=>i.isActive!==false).length}</h3>
+                                    <p class="text-xs text-slate-500 mt-2">Suspended: ${insts.filter(i=>i.isActive===false).length}</p>
+                                </div>
+                            </div>
+                            <div class="bg-gradient-to-br from-blue-600 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-blue-500/20 text-white relative overflow-hidden">
+                                <div class="relative z-10">
+                                    <p class="text-blue-100 text-xs font-bold uppercase tracking-wider mb-2">System Status</p>
+                                    <h3 class="text-2xl font-black">Online</h3>
+                                    <p class="text-xs text-blue-200 mt-1 opacity-80">Provider: Google Firebase</p>
+                                </div>
+                                <i class="fas fa-server absolute bottom-4 right-4 text-6xl opacity-20"></i>
                             </div>
                         </div>
-                    </div>
-                `;
-                
-                // Charts Init
-                new Chart($('mainChart'), {
-                    type: 'line',
-                    data: {
-                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Current'],
-                        datasets: [{
-                            label: 'Students Onboarded',
-                            data: [0, 5, 12, 20, stuCount - 2, stuCount],
-                            borderColor: '#3b82f6', backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                            fill: true, tension: 0.4
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#1f2937' } }, x: { grid: { display: false } } } }
-                });
 
-                new Chart($('pieChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Schools', 'Students', 'Exams'],
-                        datasets: [{
-                            data: [instCount, stuCount, db.exams?.length || 0],
-                            backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }, cutout: '70%' }
-                });
-            }
-
-            // 2. INSTITUTIONS
-            if(tab === 'institutions') {
-                title.innerText = 'Manage Institutions';
-                content.innerHTML = `
-                    <div class="flex flex-col lg:flex-row gap-8 h-full fade-in-up">
-                        <div class="lg:w-1/3">
-                            <div class="glass-card p-8 rounded-2xl sticky top-0 border-t-4 border-t-blue-500">
-                                <h3 class="text-xl font-bold text-white mb-6">Register Institution</h3>
-                                <div class="space-y-5">
-                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Name</label><input id="n-name" class="input-dark mt-1" placeholder="e.g. Springfield Academy"></div>
-                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Email</label><input id="n-email" class="input-dark mt-1" placeholder="admin@school.com"></div>
-                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Password</label><input id="n-pass" class="input-dark mt-1" placeholder="Secure Password"></div>
-                                    <button onclick="addInst()" class="w-full btn-gradient py-3.5 rounded-xl font-bold text-sm shadow-lg mt-2 flex items-center justify-center gap-2"><i class="fas fa-plus-circle"></i> Create Account</button>
+                        <div class="grid lg:grid-cols-3 gap-8 fade-in-up" style="animation-delay: 0.1s">
+                            <div class="lg:col-span-2 glass-card p-8 rounded-2xl">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h4 class="font-bold text-white text-lg">Growth Trajectory</h4>
+                                    <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">Real-time</span>
+                                </div>
+                                <div class="h-64"><canvas id="mainChart"></canvas></div>
+                            </div>
+                            <div class="glass-card p-8 rounded-2xl flex flex-col justify-center">
+                                <h4 class="font-bold text-white text-lg mb-6 text-center">Entity Distribution</h4>
+                                <div class="h-48 relative w-full">
+                                    <canvas id="pieChart"></canvas>
                                 </div>
                             </div>
                         </div>
-                        <div class="lg:w-2/3 flex flex-col gap-6">
-                            <div class="relative">
-                                <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
-                                <input id="search-inst" onkeyup="filterInst()" class="input-dark pl-10 py-3.5 rounded-xl border-slate-700 bg-slate-800/50 backdrop-blur-md" placeholder="Search institutions by name, email or ID...">
-                            </div>
-                            <div class="glass-card rounded-2xl overflow-hidden" id="inst-list-container"></div>
-                        </div>
-                    </div>`;
-                renderInstListHTML(db.institutions);
-            }
+                    `;
+                    
+                    new Chart($('mainChart'), {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Current'],
+                            datasets: [{
+                                label: 'Students Onboarded',
+                                data: [0, 5, 12, 20, stuCount - 5, stuCount],
+                                borderColor: '#3b82f6', backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                fill: true, tension: 0.4
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#1f2937' } }, x: { grid: { display: false } } } }
+                    });
 
-            // 3. GLOBAL CMS (LANDING PAGE) - FIXED SAVE LOGIC
-            if(tab === 'global_cms') {
-                title.innerText = 'Global Website CMS';
-                const c = db.siteConfig;
-                content.innerHTML = `
-                    <div class="max-w-5xl mx-auto space-y-8 fade-in-up pb-20">
-                        <div class="flex justify-between items-center border-b border-slate-800 pb-6">
-                            <div><h3 class="text-2xl font-bold text-white">Landing Page Editor</h3><p class="text-slate-400 text-sm">Update content for index.html</p></div>
-                            <button onclick="saveGlobalCMS()" id="btn-save-global" class="btn-gradient px-6 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2"><i class="fas fa-save"></i> Publish Changes</button>
-                        </div>
+                    new Chart($('pieChart'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Schools', 'Students', 'Exams'],
+                            datasets: [{
+                                data: [instCount, stuCount, exams.length],
+                                backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }, cutout: '70%' }
+                    });
+                }
 
-                        <div class="grid lg:grid-cols-2 gap-8">
-                            <div class="glass-card p-8 rounded-2xl space-y-6">
-                                <h4 class="text-lg font-bold text-indigo-400 flex items-center gap-2"><i class="fas fa-heading"></i> Hero & Brand</h4>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Website Name</label><input id="g-brand" class="input-dark mt-1" value="${c.brandName||'GradeWise'}"></div>
-                                    <div>
-                                        <label class="text-xs font-bold text-slate-500 uppercase">Logo Upload</label>
-                                        <input type="file" id="g-logo" class="input-dark mt-1 text-xs" accept="image/*">
+                // 2. INSTITUTIONS
+                if(tab === 'institutions') {
+                    title.innerText = 'Manage Institutions';
+                    const insts = await fetchCollection('institutions');
+                    window.currentInstList = insts;
+                    
+                    content.innerHTML = `
+                        <div class="flex flex-col lg:flex-row gap-8 h-full fade-in-up">
+                            <div class="lg:w-1/3">
+                                <div class="glass-card p-8 rounded-2xl sticky top-0 border-t-4 border-t-blue-500">
+                                    <h3 class="text-xl font-bold text-white mb-6">Register Institution</h3>
+                                    <div class="space-y-5">
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Name</label><input id="n-name" class="input-dark mt-1" placeholder="e.g. Springfield Academy"></div>
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Email</label><input id="n-email" class="input-dark mt-1" placeholder="admin@school.com"></div>
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Password</label><input id="n-pass" class="input-dark mt-1" placeholder="Secure Password"></div>
+                                        <button onclick="addInst()" class="w-full btn-gradient py-3.5 rounded-xl font-bold text-sm shadow-lg mt-2 flex items-center justify-center gap-2"><i class="fas fa-plus-circle"></i> Create Account</button>
                                     </div>
                                 </div>
-                                <div><label class="text-xs font-bold text-slate-500 uppercase">Headline</label><textarea id="g-title" class="input-dark mt-1 font-bold text-lg" rows="2">${c.heroTitle||''}</textarea></div>
-                                <div><label class="text-xs font-bold text-slate-500 uppercase">Subtitle</label><textarea id="g-sub" class="input-dark mt-1" rows="3">${c.heroSub||''}</textarea></div>
-                                <div class="flex gap-2">
-                                    <div class="flex-1"><label class="text-xs font-bold text-slate-500 uppercase">Button Text</label><input id="g-btn" class="input-dark mt-1" value="${c.heroBtn||'Get Started'}"></div>
-                                    <div class="flex-1"><label class="text-xs font-bold text-slate-500 uppercase">WhatsApp</label><input id="g-wa" class="input-dark mt-1" value="${c.whatsapp||''}"></div>
+                            </div>
+                            <div class="lg:w-2/3 flex flex-col gap-6">
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
+                                    <input id="search-inst" onkeyup="filterInst()" class="input-dark pl-10 py-3.5 rounded-xl border-slate-700 bg-slate-800/50 backdrop-blur-md" placeholder="Search institutions by name, email or ID...">
                                 </div>
+                                <div class="glass-card rounded-2xl overflow-hidden" id="inst-list-container"></div>
+                            </div>
+                        </div>`;
+                    
+                    renderInstListHTML(insts);
+                }
+
+                // 3. GLOBAL CMS
+                if(tab === 'global_cms') {
+                    title.innerText = 'Global Website CMS';
+                    const c = await getSiteConfig();
+                    
+                    content.innerHTML = `
+                        <div class="max-w-5xl mx-auto space-y-8 fade-in-up pb-20">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-6">
+                                <div><h3 class="text-2xl font-bold text-white">Landing Page Editor</h3><p class="text-slate-400 text-sm">Update content for index.html</p></div>
+                                <button onclick="saveGlobalCMS()" id="btn-save-global" class="btn-gradient px-6 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2"><i class="fas fa-save"></i> Publish Changes</button>
                             </div>
 
-                            <div class="glass-card p-8 rounded-2xl space-y-6">
-                                <h4 class="text-lg font-bold text-purple-400 flex items-center gap-2"><i class="fas fa-info-circle"></i> Footer & Stats</h4>
-                                <div><label class="text-xs font-bold text-slate-500 uppercase">About Header</label><input id="g-ab-h" class="input-dark mt-1" value="${c.aboutHead||''}"></div>
-                                <div><label class="text-xs font-bold text-slate-500 uppercase">About Text</label><textarea id="g-ab-t" class="input-dark mt-1" rows="3">${c.aboutText||''}</textarea></div>
-                                <div class="grid grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Label 1 (Auto)</label><input id="g-st1" class="input-dark mt-1 text-xs" value="${c.stat1Label||'Institutions'}"></div>
-                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Label 2 (Auto)</label><input id="g-st2" class="input-dark mt-1 text-xs" value="${c.stat2Label||'Students'}"></div>
-                                </div>
-                                <div><label class="text-xs font-bold text-slate-500 uppercase">Footer Copyright</label><input id="g-foot" class="input-dark mt-1" value="${c.footerText||''}"></div>
-                            </div>
-                        </div>
-
-                        <div class="glass-card p-8 rounded-2xl">
-                            <h4 class="text-lg font-bold text-emerald-400 mb-6 flex items-center gap-2"><i class="fas fa-th-large"></i> Feature Cards</h4>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 space-y-2">
-                                    <div class="text-xs font-bold text-blue-500 uppercase">Card 1</div>
-                                    <input id="g-f1-t" class="input-dark text-sm font-bold" value="${c.f1Title||''}" placeholder="Title">
-                                    <textarea id="g-f1-d" class="input-dark text-xs" rows="3" placeholder="Description">${c.f1Desc||''}</textarea>
-                                </div>
-                                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 space-y-2">
-                                    <div class="text-xs font-bold text-purple-500 uppercase">Card 2</div>
-                                    <input id="g-f2-t" class="input-dark text-sm font-bold" value="${c.f2Title||''}" placeholder="Title">
-                                    <textarea id="g-f2-d" class="input-dark text-xs" rows="3" placeholder="Description">${c.f2Desc||''}</textarea>
-                                </div>
-                                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700 space-y-2">
-                                    <div class="text-xs font-bold text-emerald-500 uppercase">Card 3</div>
-                                    <input id="g-f3-t" class="input-dark text-sm font-bold" value="${c.f3Title||''}" placeholder="Title">
-                                    <textarea id="g-f3-d" class="input-dark text-xs" rows="3" placeholder="Description">${c.f3Desc||''}</textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-            }
-
-            // 4. BRANDING - UPDATED WITH THEME SELECTOR
-            if(tab === 'branding') {
-                title.innerText = 'School Branding';
-                const opts = db.institutions.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
-                content.innerHTML = `
-                    <div class="max-w-4xl mx-auto fade-in-up pb-20">
-                        <div class="glass-card p-10 mb-8 text-center bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl border-b-4 border-indigo-500 shadow-2xl">
-                            <label class="text-xs font-bold text-indigo-400 uppercase mb-3 block tracking-widest">Select Target Institution</label>
-                            <select id="cms-selector" onchange="loadInstData(this.value)" class="input-dark text-xl font-bold text-center max-w-md mx-auto py-4 border-2 border-slate-700 focus:border-blue-500 cursor-pointer hover:bg-slate-800"><option value="">-- Select School --</option>${opts}</select>
-                        </div>
-                        <div id="cms-editor" class="hidden space-y-6">
-                            <div class="grid md:grid-cols-2 gap-6">
-                                <div class="glass-card p-6 rounded-2xl">
-                                    <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Identity</h4>
-                                    <div class="space-y-4">
-                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Display Name</label><input id="c-name" class="input-dark mt-1"></div>
-                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Tagline</label><input id="c-tag" class="input-dark mt-1"></div>
-                                        <div><label class="text-xs text-slate-500 uppercase font-bold">About Us</label><textarea id="c-about" class="input-dark mt-1" rows="2"></textarea></div>
-                                    </div>
-                                </div>
-                                <div class="glass-card p-6 rounded-2xl">
-                                    <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Visuals & Themes</h4>
-                                    <div class="space-y-4">
-                                        
+                            <div class="grid lg:grid-cols-2 gap-8">
+                                <div class="glass-card p-8 rounded-2xl space-y-6">
+                                    <h4 class="text-lg font-bold text-indigo-400 flex items-center gap-2"><i class="fas fa-heading"></i> Hero & Brand</h4>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Website Name</label><input id="g-brand" class="input-dark mt-1" value="${c.brandName||'GradeWise'}"></div>
                                         <div>
-                                            <label class="text-xs text-slate-500 uppercase font-bold">Visual Theme Preset</label>
-                                            <select id="c-theme" class="input-dark mt-1 cursor-pointer">
-                                                <option value="deep_space">Deep Space (Default)</option>
-                                                <option value="midnight_blue">Midnight Blue</option>
-                                                <option value="emerald_city">Emerald City</option>
-                                                <option value="crimson_fury">Crimson Fury</option>
-                                                <option value="royal_purple">Royal Purple</option>
-                                                <option value="classic_academia">Classic Academia</option>
-                                                <option value="modern_teal">Modern Teal</option>
-                                                <option value="solar_flare">Solar Flare</option>
-                                                <option value="oceanic_depth">Oceanic Depth</option>
-                                                <option value="slate_minimal">Slate Minimal</option>
-                                            </select>
+                                            <label class="text-xs font-bold text-slate-500 uppercase">Logo Upload</label>
+                                            <input type="file" id="g-logo" class="input-dark mt-1 text-xs" accept="image/*">
                                         </div>
-
-                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Accent Color Override</label><input type="color" id="c-color" class="w-full h-10 mt-1 bg-transparent border-0 cursor-pointer rounded-lg"></div>
-                                        <div><label class="text-xs text-slate-500 uppercase font-bold">Logo</label><input type="file" id="c-logo" class="input-dark mt-1 text-xs"></div>
+                                    </div>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Headline</label><textarea id="g-title" class="input-dark mt-1 font-bold text-lg" rows="2">${c.heroTitle||''}</textarea></div>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Subtitle</label><textarea id="g-sub" class="input-dark mt-1" rows="3">${c.heroSub||''}</textarea></div>
+                                    <div class="flex gap-2">
+                                        <div class="flex-1"><label class="text-xs font-bold text-slate-500 uppercase">Button Text</label><input id="g-btn" class="input-dark mt-1" value="${c.heroBtn||'Get Started'}"></div>
+                                        <div class="flex-1"><label class="text-xs font-bold text-slate-500 uppercase">WhatsApp</label><input id="g-wa" class="input-dark mt-1" value="${c.whatsapp||''}"></div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="glass-card p-6 rounded-2xl">
-                                <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Contact Details</h4>
-                                <div class="grid md:grid-cols-2 gap-4">
-                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Email</label><input id="c-email" class="input-dark mt-1"></div>
-                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Phone</label><input id="c-phone" class="input-dark mt-1"></div>
-                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Address</label><input id="c-addr" class="input-dark mt-1"></div>
-                                    <div><label class="text-xs text-slate-500 uppercase font-bold">Login Help Msg</label><input id="c-help" class="input-dark mt-1"></div>
+
+                                <div class="glass-card p-8 rounded-2xl space-y-6">
+                                    <h4 class="text-lg font-bold text-purple-400 flex items-center gap-2"><i class="fas fa-info-circle"></i> Footer & Stats</h4>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">About Header</label><input id="g-ab-h" class="input-dark mt-1" value="${c.aboutHead||''}"></div>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">About Text</label><textarea id="g-ab-t" class="input-dark mt-1" rows="3">${c.aboutText||''}</textarea></div>
+                                    <div class="grid grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Label 1 (Auto)</label><input id="g-st1" class="input-dark mt-1 text-xs" value="${c.stat1Label||'Institutions'}"></div>
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Label 2 (Auto)</label><input id="g-st2" class="input-dark mt-1 text-xs" value="${c.stat2Label||'Students'}"></div>
+                                    </div>
+                                    <div><label class="text-xs font-bold text-slate-500 uppercase">Footer Copyright</label><input id="g-foot" class="input-dark mt-1" value="${c.footerText||''}"></div>
                                 </div>
                             </div>
-                            <button onclick="saveInstData()" class="w-full py-4 btn-primary font-bold rounded-xl shadow-lg transition">Save Configuration</button>
-                        </div>
-                    </div>`;
-            }
+                        </div>`;
+                }
 
-            // 5. DATA
-            if(tab === 'data') {
-                title.innerText = 'Data Management';
-                content.innerHTML = `
-                    <div class="max-w-3xl mx-auto space-y-6 fade-in-up pt-8">
-                        <div class="glass-card p-8 flex items-center gap-6 rounded-2xl hover:border-indigo-500/50 transition cursor-default">
-                            <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-3xl"><i class="fas fa-download"></i></div>
-                            <div class="flex-1"><h3 class="text-xl font-bold text-white">Backup Database</h3><p class="text-slate-400 text-sm mt-1">Export full JSON snapshot.</p></div>
-                            <button onclick="downloadBackup()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg">Export</button>
-                        </div>
-                        <div class="glass-card p-8 flex items-center gap-6 rounded-2xl hover:border-purple-500/50 transition cursor-default">
-                            <div class="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 text-3xl"><i class="fas fa-upload"></i></div>
-                            <div class="flex-1"><h3 class="text-xl font-bold text-white">Restore Database</h3><p class="text-slate-400 text-sm mt-1">Overwrite with backup file.</p></div>
-                            <input type="file" id="restore-file" class="hidden" onchange="restoreBackup(this)">
-                            <button onclick="$('restore-file').click()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition shadow-lg">Upload</button>
-                        </div>
-                        <div class="glass-card p-8 flex items-center gap-6 rounded-2xl border-red-900/30 bg-red-900/5 hover:bg-red-900/10 transition cursor-default">
-                            <div class="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 text-3xl"><i class="fas fa-trash-alt"></i></div>
-                            <div class="flex-1"><h3 class="text-xl font-bold text-red-400">Factory Reset</h3><p class="text-red-300/60 text-sm mt-1">Permanently delete all data.</p></div>
-                            <button onclick="wipeData()" class="px-6 py-3 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-bold transition">Reset</button>
-                        </div>
-                    </div>`;
+                // 4. BRANDING
+                if(tab === 'branding') {
+                    title.innerText = 'School Branding';
+                    const insts = await fetchCollection('institutions');
+                    window.currentInstList = insts;
+                    
+                    const opts = insts.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+                    content.innerHTML = `
+                        <div class="max-w-4xl mx-auto fade-in-up pb-20">
+                            <div class="glass-card p-10 mb-8 text-center bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl border-b-4 border-indigo-500 shadow-2xl">
+                                <label class="text-xs font-bold text-indigo-400 uppercase mb-3 block tracking-widest">Select Target Institution</label>
+                                <select id="cms-selector" onchange="loadInstData(this.value)" class="input-dark text-xl font-bold text-center max-w-md mx-auto py-4 border-2 border-slate-700 focus:border-blue-500 cursor-pointer hover:bg-slate-800"><option value="">-- Select School --</option>${opts}</select>
+                            </div>
+                            <div id="cms-editor" class="hidden space-y-6">
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div class="glass-card p-6 rounded-2xl">
+                                        <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Identity</h4>
+                                        <div class="space-y-4">
+                                            <div><label class="text-xs text-slate-500 uppercase font-bold">Display Name</label><input id="c-name" class="input-dark mt-1"></div>
+                                            <div><label class="text-xs text-slate-500 uppercase font-bold">Tagline</label><input id="c-tag" class="input-dark mt-1"></div>
+                                        </div>
+                                    </div>
+                                    <div class="glass-card p-6 rounded-2xl">
+                                        <h4 class="font-bold text-white mb-4 border-b border-slate-700 pb-2">Visuals & Themes</h4>
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="text-xs text-slate-500 uppercase font-bold">Visual Theme Preset</label>
+                                                <select id="c-theme" class="input-dark mt-1 cursor-pointer">
+                                                    <option value="deep_space">Deep Space (Default)</option>
+                                                    <option value="midnight_blue">Midnight Blue</option>
+                                                    <option value="emerald_city">Emerald City</option>
+                                                    <option value="crimson_fury">Crimson Fury</option>
+                                                    <option value="royal_purple">Royal Purple</option>
+                                                    <option value="classic_academia">Classic Academia</option>
+                                                    <option value="modern_teal">Modern Teal</option>
+                                                    <option value="solar_flare">Solar Flare</option>
+                                                    <option value="oceanic_depth">Oceanic Depth</option>
+                                                    <option value="slate_minimal">Slate Minimal</option>
+                                                    <option value="sunset_bliss">Sunset Bliss</option>
+                                                    <option value="cyber_neon">Cyber Neon</option>
+                                                    <option value="forest_whisper">Forest Whisper</option>
+                                                    <option value="golden_luxury">Golden Luxury</option>
+                                                </select>
+                                            </div>
+                                            <div><label class="text-xs text-slate-500 uppercase font-bold">Logo</label><input type="file" id="c-logo" class="input-dark mt-1 text-xs"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="saveInstData()" class="w-full py-4 btn-primary font-bold rounded-xl shadow-lg transition">Save Configuration</button>
+                            </div>
+                        </div>`;
+                }
+
+                // 5. DATA (Export/Backup)
+                if(tab === 'data') {
+                    title.innerText = 'Data Management';
+                    content.innerHTML = `
+                        <div class="max-w-3xl mx-auto space-y-6 fade-in-up pt-8">
+                            <div class="glass-card p-8 flex items-center gap-6 rounded-2xl hover:border-indigo-500/50 transition cursor-default">
+                                <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-3xl"><i class="fas fa-download"></i></div>
+                                <div class="flex-1"><h3 class="text-xl font-bold text-white">Backup Database</h3><p class="text-slate-400 text-sm mt-1">Export full JSON snapshot from Cloud.</p></div>
+                                <button onclick="downloadBackup()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg">Export</button>
+                            </div>
+                            <div class="glass-card p-8 flex items-center gap-6 rounded-2xl border-red-900/30 bg-red-900/5 hover:bg-red-900/10 transition cursor-default">
+                                <div class="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 text-3xl"><i class="fas fa-trash-alt"></i></div>
+                                <div class="flex-1"><h3 class="text-xl font-bold text-red-400">Factory Reset</h3><p class="text-red-300/60 text-sm mt-1">Permanently delete all data.</p></div>
+                                <button onclick="wipeData()" class="px-6 py-3 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-bold transition">Reset</button>
+                            </div>
+                        </div>`;
+                }
+            
+            } catch (error) {
+                console.error(error);
+                showToast("Connection Error: " + error.message, "error");
+            } finally {
+                showLoader(false);
             }
         }
 
-        // --- INSTITUTION LOGIC (CRUD) ---
+        // --- UTILS & CRUD ---
         function renderInstListHTML(list) {
             const container = $('inst-list-container');
             if(list.length === 0) { container.innerHTML = `<div class="p-12 text-center text-slate-500">No institutions found. Use the form to create one.</div>`; return; }
@@ -557,23 +605,26 @@
 
         function filterInst() {
             const term = $('search-inst').value.toLowerCase();
-            const db = getDB();
-            renderInstListHTML(db.institutions.filter(i => i.name.toLowerCase().includes(term) || i.email.toLowerCase().includes(term) || i.id.includes(term)));
+            const list = window.currentInstList || [];
+            renderInstListHTML(list.filter(i => i.name.toLowerCase().includes(term) || i.email.toLowerCase().includes(term) || i.id.includes(term)));
         }
 
-        // --- CRUD ACTIONS ---
-        function addInst() {
+        async function addInst() {
             const n=$('n-name').value, e=$('n-email').value, p=$('n-pass').value;
             if(n&&e&&p){
-                const db=getDB();
-                if(db.institutions.some(i=>i.email===e)) return showToast("Username already exists", "error");
-                db.institutions.push({id:genID(), name:n, email:e, pass:p, isActive:true, themeColor:'#6366f1', theme:'deep_space'});
-                saveDB(db); showToast("Institution Created Successfully"); renderTab('institutions');
+                showLoader(true);
+                await createDoc('institutions', {
+                    name:n, email:e, pass:p, 
+                    isActive:true, themeColor:'#6366f1', theme:'deep_space',
+                    createdAt: new Date().toISOString()
+                });
+                showToast("Institution Created in Cloud");
+                await renderTab('institutions');
             } else showToast("Please fill all fields", "error");
         }
 
         function openEditModal(id) {
-            const i = getDB().institutions.find(x=>x.id===id);
+            const i = window.currentInstList.find(x=>x.id===id);
             if(i) {
                 $('edit-id').value = id;
                 $('edit-name').value = i.name;
@@ -582,95 +633,137 @@
                 $('edit-modal').classList.remove('hidden');
             }
         }
+        function closeModal() { $('edit-modal').classList.add('hidden'); }
 
-        function saveEdit() {
+        async function saveEdit() {
             const id = $('edit-id').value;
-            const db = getDB();
-            const idx = db.institutions.findIndex(x=>x.id===id);
-            if(idx !== -1) {
-                db.institutions[idx].name = $('edit-name').value;
-                db.institutions[idx].email = $('edit-email').value;
-                if($('edit-pass').value) db.institutions[idx].pass = $('edit-pass').value;
-                saveDB(db);
-                showToast("Institution Updated");
-                closeModal();
-                renderTab('institutions');
+            showLoader(true);
+            const data = { name: $('edit-name').value, email: $('edit-email').value };
+            if($('edit-pass').value) data.pass = $('edit-pass').value;
+            await updateDocFunc('institutions', id, data);
+            showToast("Institution Updated");
+            closeModal();
+            await renderTab('institutions');
+        }
+
+        async function toggleInst(id, status) {
+            showLoader(true);
+            await updateDocFunc('institutions', id, { isActive: status });
+            await renderTab('institutions');
+        }
+
+        async function deleteInst(id) {
+            if(confirm("Permanently delete this institution from the Cloud?")) {
+                showLoader(true);
+                await deleteDocFunc('institutions', id);
+                await renderTab('institutions');
             }
         }
 
-        function closeModal() { $('edit-modal').classList.add('hidden'); }
-        function toggleInst(id,s){const db=getDB();db.institutions.find(x=>x.id===id).isActive=s;saveDB(db);renderTab('institutions');}
-        function deleteInst(id){if(confirm("Permanently delete this institution and all its data?")){const db=getDB();db.institutions=db.institutions.filter(x=>x.id!==id);saveDB(db);renderTab('institutions');}}
-        function loginAs(id){localStorage.setItem('GradeWise_session_v1',JSON.stringify({id:id,role:'inst'})); window.open('admin.html','_blank');}
-        function copyLink(id){navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname.replace('owner.html','')}home.html?id=${id}`).then(()=>showToast("Link Copied to Clipboard"));}
+        function loginAs(id) {
+    // Find the full institution data and log in using the correct Admin session key
+    const inst = window.currentInstList.find(x => x.id === id);
+    if (inst) {
+        localStorage.setItem('GradeWise_admin_session', JSON.stringify(inst)); 
+        window.open('admin.html', '_blank');
+    }
+}
 
-        // --- CMS LOGIC ---
+        function copyLink(id){
+            navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname.replace('owner.html','')}home.html?id=${id}`).then(()=>showToast("Link Copied to Clipboard"));
+        }
+
         function loadInstData(id) {
             const f=$('cms-editor'); if(!id){f.classList.add('hidden');return;}
-            const db=getDB(); const i=db.institutions.find(x=>x.id===id);
+            const i=window.currentInstList.find(x=>x.id===id);
             if(i){
                 f.classList.remove('hidden');
-                $('c-name').value=i.name; $('c-tag').value=i.tagline||''; $('c-about').value=i.aboutText||'';
-                $('c-color').value=i.themeColor||'#6366f1'; $('c-email').value=i.contactEmail||''; $('c-phone').value=i.contactPhone||'';
-                $('c-addr').value=i.address||''; $('c-help').value=i.helpMessage||'';
+                $('c-name').value=i.name; $('c-tag').value=i.tagline||'';
                 $('c-theme').value=i.theme||'deep_space';
             }
         }
-        function saveInstData() {
+
+        async function saveInstData() {
             const id=$('cms-selector').value; if(!id)return;
-            const db=getDB(); const idx=db.institutions.findIndex(x=>x.id===id); const i=db.institutions[idx];
-            i.name=$('c-name').value; i.tagline=$('c-tag').value; i.aboutText=$('c-about').value;
-            i.themeColor=$('c-color').value; i.contactEmail=$('c-email').value; i.contactPhone=$('c-phone').value;
-            i.address=$('c-addr').value; i.helpMessage=$('c-help').value;
-            i.theme=$('c-theme').value;
-            
+            showLoader(true);
+            const data = {
+                name: $('c-name').value, tagline: $('c-tag').value, theme: $('c-theme').value
+            };
             const logo=$('c-logo').files[0];
-            if(logo) { const r=new FileReader(); r.onload=e=>{i.profileImage=e.target.result; saveDB(db); showToast("Saved with Logo");}; r.readAsDataURL(logo); }
-            else { saveDB(db); showToast("Branding Updated"); }
+            if(logo) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    data.profileImage = await uploadImage(`logos/${id}_logo.png`, e.target.result);
+                    await updateDocFunc('institutions', id, data);
+                    showToast("Saved with Logo");
+                    showLoader(false);
+                };
+                reader.readAsDataURL(logo);
+            } else {
+                await updateDocFunc('institutions', id, data);
+                showToast("Branding Updated");
+                showLoader(false);
+            }
         }
 
-        // --- FIXED GLOBAL CMS ---
-        function saveGlobalCMS() {
+        async function saveGlobalCMS() {
             const btn = $('btn-save-global');
             btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Saving...`;
-            
-            const db=getDB();
-            db.siteConfig = {
-                ...db.siteConfig,
+            const config = {
                 brandName: $('g-brand').value, heroTitle: $('g-title').value, heroSub: $('g-sub').value, heroBtn: $('g-btn').value,
                 stat1Label: $('g-st1').value, stat2Label: $('g-st2').value, whatsapp: $('g-wa').value, footerText: $('g-foot').value,
                 f1Title: $('g-f1-t').value, f1Desc: $('g-f1-d').value, f2Title: $('g-f2-t').value, f2Desc: $('g-f2-d').value,
                 f3Title: $('g-f3-t').value, f3Desc: $('g-f3-d').value, aboutHead: $('g-ab-h').value, aboutText: $('g-ab-t').value,
             };
-            
-            // Check for logo upload
             const logoInput = $('g-logo');
             if(logoInput && logoInput.files.length > 0) {
                 const r = new FileReader();
-                r.onload = e => {
-                    db.siteConfig.brandLogo = e.target.result;
-                    saveDB(db);
+                r.onload = async (e) => {
+                    config.brandLogo = await uploadImage('site/global_logo.png', e.target.result);
+                    await saveSiteConfig(config);
                     showToast("Global Site & Logo Published");
                     btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
                 };
                 r.readAsDataURL(logoInput.files[0]);
             } else {
-                saveDB(db);
+                await saveSiteConfig(config);
                 showToast("Global Site Content Published");
                 btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
             }
         }
 
-        // --- SYSTEM DATA ---
-        function downloadBackup() {
-            const a=document.createElement('a'); a.href='data:text/json;charset=utf-8,'+encodeURIComponent(localStorage.getItem(DB_KEY));
-            a.download=`gradewise_backup_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(a); a.click(); a.remove();
+        async function downloadBackup() {
+            showLoader(true);
+            try {
+                const data = {
+                    institutions: await fetchCollection('institutions'),
+                    students: await fetchCollection('students'),
+                    exams: await fetchCollection('exams'),
+                    results: await fetchCollection('results'),
+                    classes: await fetchCollection('classes'),
+                    subjects: await fetchCollection('subjects'),
+                    siteConfig: await getSiteConfig()
+                };
+                const a=document.createElement('a'); 
+                a.href='data:text/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data));
+                a.download=`gradewise_cloud_backup_${new Date().toISOString().split('T')[0]}.json`; 
+                document.body.appendChild(a); a.click(); a.remove();
+            } catch(e) { console.error(e); showToast("Backup Failed", "error"); }
+            showLoader(false);
         }
-        function restoreBackup(inp) {
-            const f=inp.files[0]; if(!f)return;
-            const r=new FileReader(); r.onload=e=>{try{JSON.parse(e.target.result); localStorage.setItem(DB_KEY,e.target.result); location.reload();}catch(x){showToast("Invalid Backup File","error");}}; r.readAsText(f);
+
+        function restoreBackup(inp) { alert("Cloud Restore via file upload is disabled."); }
+        async function wipeData() { 
+            if(confirm("CRITICAL WARNING: This will delete ALL data in the CLOUD. Are you sure?")) { 
+                if(confirm("Really sure? This cannot be undone.")) {
+                    showLoader(true);
+                    const insts = await fetchCollection('institutions');
+                    for(const i of insts) await deleteDocFunc('institutions', i.id);
+                    showToast("System Wiped");
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } 
         }
-        function wipeData() { if(confirm("CRITICAL WARNING: This will delete ALL data. Are you sure?")) { localStorage.removeItem(DB_KEY); location.reload(); } }
     </script>
 </body>
 </html>
