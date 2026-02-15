@@ -4,21 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal | GradeWise</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cinzel:wght@400;700;900&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="security.js"></script>
+
     <style>
-        /* --- DYNAMIC THEME SYSTEM --- */
         :root {
             --bg-dark: #020617;
             --bg-panel: rgba(15, 23, 42, 0.85);
@@ -28,7 +22,14 @@
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --border: rgba(255,255,255,0.08);
+            --bg-input: rgba(30, 41, 59, 0.6);
         }
+
+        .text-main { color: var(--text-main) !important; }
+        .text-muted { color: var(--text-muted) !important; }
+        .bg-dark { background-color: var(--bg-dark) !important; }
+        .bg-panel { background-color: var(--bg-panel) !important; }
+        .border-theme { border-color: var(--border) !important; }
         
         body { 
             font-family: 'Inter', sans-serif; 
@@ -38,125 +39,48 @@
             transition: background-color 0.5s ease, color 0.5s ease;
         }
 
-        /* Animated Background */
-        .bg-orb { 
-            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; z-index: -1; 
-            animation: float 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        .bg-orb { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; z-index: -1; animation: float 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20px, -20px) scale(1.1); } }
         
-        /* Glassmorphism */
-        .glass-panel { 
-            background: var(--bg-panel); backdrop-filter: blur(20px); 
-            border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            transition: background 0.5s ease, border-color 0.5s ease;
-        }
+        .glass-panel { background: var(--bg-panel); backdrop-filter: blur(20px); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: background 0.5s ease, border-color 0.5s ease; }
         
-        /* Inputs & Buttons */
-        .input-dark { 
-            background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border); color: var(--text-main); 
-            padding: 12px 16px; border-radius: 10px; width: 100%; outline: none; transition: 0.3s;
-        }
+        .input-dark { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px 16px; border-radius: 10px; width: 100%; outline: none; transition: 0.3s; }
         .input-dark:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
         
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
-            color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; 
-            transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow);
-            display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
-        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white !important; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
         .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
-        /* Sidebar */
-        .nav-item { 
-            display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 4px;
-            border-radius: 12px; color: var(--text-muted); transition: 0.2s; cursor: pointer; font-weight: 500;
-            border-left: 3px solid transparent;
-        }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
-        .nav-item.active { background: var(--primary-glow); color: white; border-left-color: var(--primary); }
+        .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 4px; border-radius: 12px; color: var(--text-muted); transition: 0.2s; cursor: pointer; font-weight: 500; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(125,125,125,0.1); color: var(--text-main); }
+        .nav-item.active { background: var(--primary-glow); color: var(--text-main); border-left-color: var(--primary); }
 
-        /* --- PROFESSIONAL TRANSCRIPT DESIGN --- */
-        .a4-container {
-            width: 210mm; height: 297mm; padding: 0;
-            background: #fff; color: #1e293b;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            position: relative; overflow: hidden; margin: 0 auto;
-            box-sizing: border-box; display: flex; flex-direction: column;
-            transform: scale(0.65); transform-origin: top center; /* CRITICAL FIX: Ensures it fits screens properly */
-        }
-        @media (max-width: 768px) {
-            .a4-container { transform: scale(0.40); margin-top: -15%; margin-bottom: -30%; }
-        }
-        
-        .transcript-frame { 
-            border: 8px solid #1e293b; 
-            outline: 2px solid #94a3b8; outline-offset: -12px;
-            height: 100%; margin: 8mm; 
-            position: relative; display: flex; flex-direction: column;
-            background: #fff;
-        }
-
-        .transcript-inner {
-            padding: 8mm 12mm; flex: 1; display: flex; flex-direction: column;
-            background-image: radial-gradient(#f1f5f9 1px, transparent 1px);
-            background-size: 25px 25px;
-        }
-
-        .watermark-layer {
-            position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; 
-            opacity: 0.04; pointer-events: none; z-index: 0;
-        }
+        .a4-container { width: 210mm; min-height: 297mm; padding: 0; background: #fff; color: #1e293b; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; overflow: hidden; margin: 2rem auto; display: flex; flex-direction: column; transform: scale(0.65); transform-origin: top center; transition: all 0.3s ease; }
+        @media (max-width: 768px) { .a4-container { transform: scale(0.40); margin-top: -15%; margin-bottom: -30%; } }
+        .transcript-frame { border: 8px solid #1e293b; outline: 2px solid #94a3b8; outline-offset: -12px; height: 100%; min-height: 290mm; margin: 8mm; position: relative; display: flex; flex-direction: column; background: #fff; }
+        .transcript-inner { padding: 8mm 12mm; flex: 1; display: flex; flex-direction: column; background-image: radial-gradient(#f1f5f9 1px, transparent 1px); background-size: 25px 25px; }
+        .watermark-layer { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; opacity: 0.04; pointer-events: none; z-index: 0; }
         .watermark-logo { width: 50%; filter: grayscale(100%); }
-
         .content-layer { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; }
-
         .mk-serif { font-family: 'Playfair Display', serif; }
         .mk-header-font { font-family: 'Cinzel', serif; }
-
-        /* Student Info Grid */
         .info-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; margin: 1.5rem 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
         .info-row { display: flex; border-bottom: 1px dotted #cbd5e1; padding-bottom: 3px; margin-bottom: 6px; }
         .info-label { width: 110px; font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .info-val { font-weight: 700; color: #0f172a; font-family: 'Playfair Display', serif; font-size: 1rem; }
-
-        /* Table */
         .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-        .mk-table th { 
-            background: #f8fafc; color: #334155; padding: 10px; text-transform: uppercase; 
-            font-size: 0.65rem; font-weight: 800; letter-spacing: 1px; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b;
-        }
+        .mk-table th { background: #f8fafc; color: #334155; padding: 10px; text-transform: uppercase; font-size: 0.65rem; font-weight: 800; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; }
         .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; color: #334155; text-align: center; font-weight: 500; font-size: 0.9rem; }
         .mk-table td:first-child { text-align: left; padding-left: 10px; font-weight: 600; color: #0f172a; }
-        
-        /* Feedback Section */
-        .feedback-section {
-            margin-top: auto;
-            display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem;
-            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
-        }
-        
-        .appreciation-box h4 { font-family: 'Cinzel', serif; font-size: 0.75rem; color: #475569; font-weight: 700; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; }
-        .appr-text { font-family: 'Playfair Display', serif; font-style: italic; color: #334155; font-size: 0.95rem; line-height: 1.4; margin-bottom: 0.5rem; }
-        .motiv-text { font-family: 'Inter', sans-serif; font-size: 0.8rem; color: #6366f1; font-weight: 600; }
-
         .stats-box { display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; border-left: 1px solid #cbd5e1; padding-left: 1.5rem; }
         .stat-row { display: flex; justify-content: space-between; align-items: center; }
         .stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; }
         .stat-val { font-weight: 800; color: #0f172a; font-size: 1.1rem; }
-
-        /* Footer */
         .doc-footer { display: flex; justify-content: space-between; align-items: end; margin-top: 1rem; border-top: 2px solid #1e293b; padding-top: 1rem; }
         .principal-box { text-align: center; width: 180px; }
-        .stamp-status { 
-            padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; 
-            font-weight: 800; text-transform: uppercase; display: inline-block; 
-            font-size: 0.85rem; letter-spacing: 1px;
-        }
+        .stamp-status { padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; font-weight: 800; text-transform: uppercase; display: inline-block; font-size: 0.85rem; transition: all 0.3s; }
         .pass { color: #059669; border-color: #059669; background: #ecfdf5; }
         .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
 
-        /* Loader */
         #global-loader { background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; }
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -168,10 +92,8 @@
 
     <div id="global-loader" class="fixed inset-0 hidden flex flex-col items-center justify-center text-white">
         <div class="spinner mb-4"></div>
-        <p class="text-sm font-bold tracking-widest animate-pulse font-mono">PROCESSING...</p>
+        <p class="text-sm font-bold tracking-widest animate-pulse font-mono">CONNECTING TO CLOUD...</p>
     </div>
-
-    <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
     <div class="fixed inset-0 pointer-events-none">
         <div class="bg-orb top-0 left-0 w-[600px] h-[600px]" style="background: var(--primary); opacity: 0.15;"></div>
@@ -179,64 +101,63 @@
         <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.04]"></div>
     </div>
 
-    <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="glass-panel p-10 rounded-2xl shadow-2xl w-full max-w-sm relative z-10 border-t border-white/10">
+    <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-dark">
+        <div class="glass-panel p-10 rounded-2xl shadow-2xl w-full max-w-sm relative z-10 border-theme">
             <div class="text-center mb-10">
-                <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 border border-white/10 shadow-lg text-white">
+                <div class="w-16 h-16 bg-panel rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 text-main border-theme shadow-lg">
                     <i class="fas fa-user-graduate"></i>
                 </div>
-                <h1 class="text-2xl font-bold tracking-tight text-white">Student Portal</h1>
-                <p class="text-slate-400 text-xs uppercase tracking-widest mt-2">Academic Access</p>
+                <h1 class="text-2xl font-bold tracking-tight text-main">Student Portal</h1>
+                <p class="text-muted text-xs uppercase tracking-widest mt-2">Academic Access</p>
             </div>
             <form onsubmit="handleLogin(event)" class="space-y-5">
                 <input type="hidden" id="login-inst">
-                <div><label class="text-xs font-bold text-slate-500 uppercase ml-1">Admission No</label><input id="login-username" class="input-dark" required></div>
-                <div><label class="text-xs font-bold text-slate-500 uppercase ml-1">Password</label><input type="password" id="login-password" class="input-dark" required></div>
+                <div><label class="text-xs font-bold text-muted uppercase ml-1">Admission No</label><input id="login-username" class="input-dark" required></div>
+                <div><label class="text-xs font-bold text-muted uppercase ml-1">Password</label><input type="password" id="login-password" class="input-dark" required></div>
                 <button id="btn-login" class="w-full btn-primary py-3">Access Results</button>
             </form>
-            <div class="mt-6 text-center text-xs text-slate-500"><a id="link-home" href="index.html" class="hover:text-white transition"><i class="fas fa-home mr-1"></i> Home</a></div>
+            <div class="mt-6 text-center text-xs text-muted"><a id="link-home" href="index.html" class="hover:text-main transition"><i class="fas fa-home mr-1"></i> Home</a></div>
         </div>
     </section>
 
     <div id="view-dashboard" class="hidden w-full h-full flex relative z-10">
-        <aside class="w-72 bg-[#0b1121]/90 border-r border-slate-800 flex flex-col flex-shrink-0 z-40 backdrop-blur-md">
-            <div class="p-8 border-b border-slate-800/50 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold border border-slate-700 overflow-hidden shadow-lg relative" style="background-color: var(--primary);">
+        <aside class="w-72 bg-panel border-r border-theme flex flex-col flex-shrink-0 z-40 backdrop-blur-md">
+            <div class="p-8 border-b border-theme flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold border border-white/20 overflow-hidden shadow-lg relative" style="background-color: var(--primary);">
                     <img id="sb-logo" class="w-full h-full object-cover hidden">
                     <i id="sb-icon" class="fas fa-university text-lg"></i>
                 </div>
                 <div class="overflow-hidden">
-                    <h2 class="font-bold text-sm leading-tight truncate w-32" style="color:var(--text-main)" id="sb-school">School Name</h2>
-                    <span class="text-[10px] text-slate-500 font-mono font-bold tracking-widest uppercase">Student Panel</span>
+                    <h2 class="font-bold text-sm leading-tight truncate w-32 text-main" id="sb-school">School Name</h2>
+                    <span class="text-[10px] text-muted font-mono font-bold tracking-widest uppercase">Student Panel</span>
                 </div>
             </div>
             <nav class="flex-1 p-5 overflow-y-auto space-y-1">
-                <div class="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest mb-3 px-3 mt-2">Menu</div>
+                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-3 px-3 mt-2">Menu</div>
                 <div onclick="renderTab('home')" class="nav-item active"><i class="fas fa-th-large w-5 text-center"></i> Overview</div>
                 <div onclick="renderTab('results')" class="nav-item"><i class="fas fa-file-signature w-5 text-center"></i> Exam Results</div>
                 <div onclick="renderTab('profile')" class="nav-item"><i class="fas fa-user-circle w-5 text-center"></i> My Profile</div>
             </nav>
-            <div class="p-5 border-t border-slate-800/50">
-                <div class="flex items-center gap-3 mb-4 px-2 py-2 rounded-xl bg-slate-900/50 border border-slate-800">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs border border-white/10" style="background-color: var(--primary-glow); color: var(--primary);"><i class="fas fa-user"></i></div>
+            <div class="p-5 border-t border-theme">
+                <div class="flex items-center gap-3 mb-4 px-2 py-2 rounded-xl bg-dark border-theme">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs" style="background-color: var(--primary-glow); color: var(--primary);"><i class="fas fa-user"></i></div>
                     <div class="overflow-hidden">
-                        <p class="text-xs font-bold truncate" style="color:var(--text-main)" id="sb-name">Student</p>
-                        <p class="text-[9px] text-slate-500 font-mono truncate" id="sb-adm">000</p>
+                        <p class="text-xs font-bold truncate text-main" id="sb-name">Student</p>
+                        <p class="text-[9px] text-muted font-mono truncate" id="sb-adm">000</p>
                     </div>
                 </div>
-                <button onclick="logout()" class="w-full py-2.5 text-red-400 text-xs font-bold hover:bg-red-500/10 rounded-xl transition border border-red-500/10 hover:border-red-500/20">
-                    <i class="fas fa-sign-out-alt"></i> Sign Out
-                </button>
+                <button onclick="logout()" class="w-full py-2.5 text-red-500 text-xs font-bold hover:bg-red-500/10 rounded-xl transition border border-red-500/20"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
             </div>
         </aside>
 
         <main class="flex-1 flex flex-col min-w-0 relative">
-            <header class="h-20 border-b border-slate-800 bg-[#020617]/80 backdrop-blur-md flex items-center justify-between px-10 sticky top-0 z-30">
-                <div><h2 id="page-title" class="text-xl font-bold tracking-tight" style="color:var(--text-main)">Overview</h2></div>
-                <div class="flex items-center gap-4">
-                    <button onclick="viewPublicPage()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition text-xs font-bold flex items-center gap-2">
-                        <i class="fas fa-globe"></i> School Website 
-                    </button>
+            <header class="h-20 border-b border-theme bg-panel backdrop-blur-md flex items-center justify-between px-10 sticky top-0 z-30">
+                <div><h2 id="page-title" class="text-xl font-bold tracking-tight text-main">Overview</h2></div>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <p class="text-[10px] text-muted font-mono uppercase tracking-widest">Live Sync Active</p>
                 </div>
             </header>
             <div id="content-area" class="flex-1 overflow-y-auto p-10 pb-32"></div>
@@ -244,27 +165,25 @@
     </div>
 
     <div id="marksheet-modal" class="hidden fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex justify-center overflow-y-auto fade-in">
-        <div class="w-full max-w-[210mm] relative">
+        <div class="w-full max-w-[210mm] relative my-10">
             <div class="fixed top-6 right-6 flex gap-3 z-[110]">
                 <button onclick="shareResult()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 transition border border-indigo-400"><i class="fas fa-share-alt"></i> Share</button>
                 <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 transition border border-blue-400"><i class="fas fa-file-pdf"></i> Download PDF</button>
                 <button onclick="closeModal()" class="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-xs font-bold backdrop-blur-md border border-white/10 transition cursor-pointer"><i class="fas fa-times"></i> Close</button>
             </div>
-
+            
             <div id="mk-printable" class="a4-container">
                 <div class="transcript-frame">
                     <div class="watermark-layer"><img id="mk-watermark" class="watermark-logo"></div>
-                    
                     <div class="transcript-inner">
                         <div class="content-layer">
                             <div class="text-center mb-6">
-                                <div class="inline-block mb-2 p-1 border border-slate-200 rounded-full"><div class="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"><img id="mk-logo" class="max-w-full max-h-full object-contain"></div></div>
+                                <div class="inline-block mb-2 p-1 border border-slate-200 rounded-full"><div class="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden" id="mk-logo-container"></div></div>
                                 <h1 id="mk-school" class="text-3xl font-black uppercase mk-header-font text-slate-900 tracking-wide mb-1">School Name</h1>
                                 <p id="mk-addr" class="text-xs text-slate-500 uppercase tracking-widest font-bold">Institution Address</p>
                                 <div class="mt-4 border-b border-slate-900 w-1/3 mx-auto"></div>
                                 <p class="mt-1 text-sm font-serif italic text-slate-700">Official Statement of Marks</p>
                             </div>
-
                             <div class="info-grid">
                                 <div class="flex flex-col gap-2">
                                     <div class="info-row"><span class="info-label">Candidate Name</span><span id="mk-name" class="info-val">Student Name</span></div>
@@ -277,45 +196,30 @@
                                     <div class="info-row"><span class="info-label">Issue Date</span><span id="mk-date" class="info-val">Date</span></div>
                                 </div>
                             </div>
-
                             <table class="mk-table mb-auto">
-                                <thead><tr><th class="text-left pl-6">Subject</th><th width="15%">Max Marks</th><th width="15%">Pass Marks</th><th width="15%">Obtained</th></tr></thead>
+                                <thead><tr><th class="text-left pl-6">Subject</th><th width="15%">Max Marks</th><th width="15%">Pass Marks</th><th width="15%">Obtained</th><th width="15%">Grade</th></tr></thead>
                                 <tbody id="mk-body"></tbody>
                                 <tfoot>
-                                    <tr class="bg-slate-100 text-slate-900">
-                                        <td class="text-left font-black pl-6 text-sm uppercase tracking-widest">Grand Total</td>
-                                        <td colspan="2" class="text-center font-bold text-slate-500 text-xs uppercase" id="mk-total-words">Zero Only</td>
-                                        <td id="mk-total" class="text-center text-lg font-bold text-slate-900 py-3">0</td>
-                                    </tr>
+                                    <tr class="bg-slate-100 text-slate-900"><td class="text-left font-black pl-6 text-sm uppercase tracking-widest">Grand Total</td><td colspan="2" class="text-center font-bold text-slate-500 text-xs uppercase" id="mk-total-words">Zero Only</td><td id="mk-total" class="text-center text-lg font-bold text-slate-900 py-3" colspan="2">0</td></tr>
                                 </tfoot>
                             </table>
-
-                            <div class="feedback-section">
-                                <div class="appreciation-box">
-                                    <h4><i class="fas fa-quote-left mr-2 opacity-50"></i>Performance Insight</h4>
-                                    <p id="mk-appreciation" class="appr-text">"Outstanding performance."</p>
-                                    <p id="mk-motivation" class="motiv-text">"Keep pushing your limits!"</p>
+                            <div id="mk-legend" class="mt-4 mb-2 text-[8px] text-slate-500 font-mono text-center border-t border-slate-200 pt-2"></div>
+                            <div class="mt-4 mb-4 display: flex gap-4">
+                                <div class="stats-box flex-1 border border-slate-200 rounded-lg p-4 bg-slate-50">
+                                    <div class="stat-row mb-1"><span class="stat-label">Percentage</span><span id="mk-pct" class="stat-val">0%</span></div>
+                                    <div class="stat-row mb-1"><span class="stat-label">Result Status</span><div id="mk-stamp-container"></div></div>
                                 </div>
-                                
-                                <div class="stats-box">
-                                    <div class="stat-row"><span class="stat-label">Percentage</span><span id="mk-pct" class="stat-val text-sm">0%</span></div>
-                                    <div class="stat-row"><span class="stat-label">Division</span><span id="mk-div" class="stat-val text-sm">N/A</span></div>
-                                    <div class="stat-row"><span class="stat-label">Class Rank</span><span id="mk-rank" class="stat-val text-sm">#1</span></div>
-                                    <div class="stat-row"><span class="stat-label">Attendance</span><span id="mk-att" class="stat-val text-sm">N/A</span></div>
-                                    <div class="stat-row mt-2"><span class="stat-label">Result Status</span><div id="mk-stamp-container"></div></div>
+                                <div class="stats-box flex-1 border border-slate-200 rounded-lg p-4 bg-slate-50">
+                                    <div class="stat-row mb-1"><span class="stat-label">Overall Grade</span><span id="mk-overall-grade" class="stat-val text-sm">N/A</span></div>
+                                    <div class="stat-row mb-1"><span class="stat-label">Attendance</span><span id="mk-att" class="stat-val text-sm">0/0</span></div>
                                 </div>
                             </div>
-
-                            <div class="doc-footer">
-                                <div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">
-                                    This document is securely processed and digitally generated by GradeWise Cloud Systems.<br>
-                                    Valid academic record. No physical signature required for web verification.
-                                </div>
-                                <div class="principal-box">
-                                    <div class="h-16 flex items-end justify-center mb-1"><img id="mk-sig" class="max-h-full max-w-full object-contain filter grayscale contrast-125"></div>
-                                    <div class="border-t-2 border-slate-900 w-full mb-1"></div>
+                            <div class="doc-footer border-t-2 border-slate-900 pt-6 mt-4 flex justify-between items-end">
+                                <div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">This document is securely processed and digitally generated by GradeWise Cloud Systems.<br>Valid academic record. No physical signature required for web verification.</div>
+                                <div class="principal-box text-center">
+                                    <div class="h-16 flex items-end justify-center mb-1" id="mk-sig-container"></div>
+                                    <div class="border-t-2 border-slate-900 w-32 mx-auto mb-1"></div>
                                     <p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p>
-                                    <p class="text-[8px] text-slate-500 uppercase">Head of Institution</p>
                                 </div>
                             </div>
                         </div>
@@ -326,7 +230,6 @@
     </div>
 
     <script>
-        // 1. Firebase Initialization
         const firebaseConfig = {
             apiKey: "AIzaSyBDluJn6c-9vr3jJUEIl3FJ2l4HD4W1M2k",
             authDomain: "gradewise-app.firebaseapp.com",
@@ -338,15 +241,18 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 2. Global State Variables
         const SESSION_KEY = 'grasewise_student_session';
         let currentStudent = null;
         let currentInst = null;
-        let cache = { subjects: [], exams: [], classes: [] };
+        let cache = { subjects: [], exams: [], classes: [], results: [] };
+        
+        let isInitialLoad = true;
+        let activeResultId = null; 
 
-        // 3. Theme Presets (Matches Admin/Owner configurations)
+        // --- THEMES & GRADES ---
         const THEMES = {
             'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.75)', text: '#f8fafc', muted: '#94a3b8' },
+            'minimal_light': { bg: '#f8fafc', glass: 'rgba(255, 255, 255, 0.85)', text: '#0f172a', muted: '#64748b' },
             'midnight_blue': { bg: '#0b1121', glass: 'rgba(30, 41, 59, 0.75)', text: '#f0f9ff', muted: '#94a3b8' },
             'emerald_city': { bg: '#022c22', glass: 'rgba(6, 78, 59, 0.75)', text: '#ecfdf5', muted: '#6ee7b7' },
             'crimson_fury': { bg: '#450a0a', glass: 'rgba(127, 29, 29, 0.75)', text: '#fff1f2', muted: '#fda4af' },
@@ -355,11 +261,15 @@
             'modern_teal': { bg: '#134e4a', glass: 'rgba(17, 94, 89, 0.75)', text: '#f0fdfa', muted: '#99f6e4' },
             'solar_flare': { bg: '#431407', glass: 'rgba(124, 45, 18, 0.75)', text: '#fff7ed', muted: '#fdba74' },
             'oceanic_depth': { bg: '#0c4a6e', glass: 'rgba(12, 74, 110, 0.75)', text: '#f0f9ff', muted: '#bae6fd' },
-            'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.75)', text: '#f8fafc', muted: '#cbd5e1' },
-            'minimal_light': { bg: '#f8fafc', glass: 'rgba(255, 255, 255, 0.85)', text: '#0f172a', muted: '#64748b' }
+            'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.75)', text: '#f8fafc', muted: '#cbd5e1' }
         };
 
-        // 4. Utilities
+        const DEFAULT_SCALES = {
+            standard: [{g:'A+',m:90},{g:'A',m:80},{g:'B',m:70},{g:'C',m:60},{g:'D',m:50},{g:'F',m:0}],
+            gpa: [{g:'A',m:90},{g:'B',m:80},{g:'C',m:70},{g:'D',m:60},{g:'F',m:0}],
+            o_level: [{g:'O',m:90},{g:'A+',m:80},{g:'A',m:70},{g:'B',m:60},{g:'C',m:50},{g:'F',m:0}]
+        };
+
         const $ = id => document.getElementById(id);
         const showLoader = (show) => $('global-loader').classList.toggle('hidden', !show);
         
@@ -371,61 +281,56 @@
             setTimeout(() => el.remove(), 4000);
         }
 
-        function numToWords(n) {
-            const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
-            const b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
-            if ((n = n.toString()).length > 9) return 'Overflow';
-            let n_ = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-            if (!n_) return; 
-            let str = '';
-            str += (n_[1] != 0) ? (a[Number(n_[1])] || b[n_[1][0]] + ' ' + a[n_[1][1]]) + 'Crore ' : '';
-            str += (n_[2] != 0) ? (a[Number(n_[2])] || b[n_[2][0]] + ' ' + a[n_[2][1]]) + 'Lakh ' : '';
-            str += (n_[3] != 0) ? (a[Number(n_[3])] || b[n_[3][0]] + ' ' + a[n_[3][1]]) + 'Thousand ' : '';
-            str += (n_[4] != 0) ? (a[Number(n_[4])] || b[n_[4][0]] + ' ' + a[n_[4][1]]) + 'Hundred ' : '';
-            str += (n_[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n_[5])] || b[n_[5][0]] + ' ' + a[n_[5][1]]) : '';
-            return str.trim() ? str.trim() + " Only" : "Zero Only";
+        // --- DYNAMIC GRADING LOGIC ---
+        function getGrade(pct, customScale) {
+            pct = Number(pct);
+            if(!customScale || customScale.length === 0) return '-';
+            const sorted = [...customScale].sort((a, b) => b.m - a.m);
+            for(let i=0; i<sorted.length; i++) {
+                if(pct >= sorted[i].m) return sorted[i].g;
+            }
+            return sorted[sorted.length-1].g;
         }
 
-        // 5. App Initialization & Cloud Security Check
+        function getGradeLegend(customScale) {
+            if(!customScale || customScale.length === 0) return '';
+            const sorted = [...customScale].sort((a, b) => b.m - a.m);
+            return sorted.map((row, i) => {
+                if (sorted.length === 1) return `${row.g} (All)`;
+                if(i === 0) return `${row.g} (${row.m}-100%)`;
+                if(i === sorted.length - 1) return `${row.g} (<${sorted[i-1].m}%)`;
+                return `${row.g} (${row.m}-${sorted[i-1].m - 1}%)`;
+            }).join(' | ');
+        }
+
         window.onload = () => { checkSession(); };
 
-        async function checkSession() {
+        function checkSession() {
             const s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
             const urlParams = new URLSearchParams(window.location.search);
             const instId = urlParams.get('id') || localStorage.getItem('grasewise_last_school');
 
             if(s && s.id) {
-                try {
-                    const doc = await db.collection('students').doc(s.id).get();
-                    if(doc.exists) {
-                        currentStudent = { id: doc.id, ...doc.data() };
-                        await loadInstitution(currentStudent.institutionId);
-                        await loadCacheData();
-                        initDashboard();
-                        return;
-                    }
-                } catch(e) { console.error("Session Verification Error", e); }
+                startRealtimeListeners(s.id);
+                return;
             }
 
             if(instId) {
                 $('login-inst').value = instId;
                 if($('link-home')) $('link-home').href = `home.html?id=${instId}`;
-                await loadInstitution(instId);
+                
+                db.collection('institutions').doc(instId).onSnapshot(doc => {
+                    if(doc.exists) {
+                        currentInst = { id: doc.id, ...doc.data() };
+                        applyTheme(currentInst);
+                        localStorage.setItem('grasewise_last_school', instId);
+                    }
+                });
+                
                 $('view-login').classList.remove('hidden');
             } else {
                 window.location.href = 'index.html'; 
             }
-        }
-
-        async function loadInstitution(id) {
-            try {
-                const doc = await db.collection('institutions').doc(id).get();
-                if(doc.exists) {
-                    currentInst = { id: doc.id, ...doc.data() };
-                    applyTheme(currentInst);
-                    localStorage.setItem('grasewise_last_school', id);
-                }
-            } catch(e) { console.error("Institution Loading Error", e); }
         }
 
         function applyTheme(inst) {
@@ -439,13 +344,21 @@
             root.style.setProperty('--primary', color);
             root.style.setProperty('--primary-dark', adjustColor(color, -20));
             root.style.setProperty('--primary-glow', color + '40');
+            
             root.style.setProperty('--bg-dark', t.bg);
             root.style.setProperty('--bg-panel', t.glass);
             root.style.setProperty('--text-main', t.text);
             root.style.setProperty('--text-muted', t.muted);
+
+            if (t.bg === '#f8fafc' || t.bg === '#ffffff') {
+                root.style.setProperty('--border', 'rgba(0, 0, 0, 0.1)');
+                root.style.setProperty('--bg-input', 'rgba(0, 0, 0, 0.05)');
+            } else {
+                root.style.setProperty('--border', 'rgba(255, 255, 255, 0.08)');
+                root.style.setProperty('--bg-input', 'rgba(30, 41, 59, 0.6)');
+            }
         }
 
-        // 6. Login Handler (Queries Cloud DB)
         async function handleLogin(e) {
             e.preventDefault();
             const instId = $('login-inst').value;
@@ -457,49 +370,85 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
 
             try {
-                const snap = await db.collection('students')
-                    .where('institutionId', '==', instId)
-                    .where('admissionNo', '==', uname)
-                    .where('password', '==', pass)
-                    .get();
-
+                const snap = await db.collection('students').where('institutionId', '==', instId).where('admissionNo', '==', uname).where('password', '==', pass).get();
                 if(!snap.empty) {
                     const doc = snap.docs[0];
-                    currentStudent = { id: doc.id, ...doc.data() };
                     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ id: doc.id }));
-                    
-                    await loadCacheData();
-                    initDashboard();
-                } else {
-                    showToast("Invalid Admission No or Password", "error");
-                    btn.innerHTML = 'Access Results';
+                    $('view-login').classList.add('hidden');
+                    startRealtimeListeners(doc.id);
+                } else { 
+                    showToast("Invalid Admission No or Password", "error"); 
+                    btn.innerHTML = 'Access Results'; 
                 }
-            } catch(e) {
-                console.error(e);
-                showToast("Connection Error", "error");
-                btn.innerHTML = 'Access Results';
+            } catch(e) { console.error(e); showToast("Connection Error", "error"); btn.innerHTML = 'Access Results'; }
+        }
+
+        function startRealtimeListeners(studentId) {
+            showLoader(true);
+            
+            db.collection('students').doc(studentId).onSnapshot(doc => {
+                if(!doc.exists) { logout(); return; }
+                currentStudent = { id: doc.id, ...doc.data() };
+                
+                db.collection('institutions').doc(currentStudent.institutionId).onSnapshot(instDoc => {
+                    if(instDoc.exists) {
+                        currentInst = { id: instDoc.id, ...instDoc.data() };
+                        applyTheme(currentInst);
+                        updateSidebar();
+                        liveUpdateUI();
+                    }
+                });
+
+                db.collection('classes').where('institutionId', '==', currentStudent.institutionId).onSnapshot(snap => {
+                    cache.classes = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    liveUpdateUI();
+                });
+
+                db.collection('exams').where('institutionId', '==', currentStudent.institutionId).onSnapshot(snap => {
+                    cache.exams = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    liveUpdateUI();
+                });
+
+                db.collection('subjects').where('institutionId', '==', currentStudent.institutionId).onSnapshot(snap => {
+                    cache.subjects = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    liveUpdateUI();
+                });
+
+                db.collection('results').where('studentId', '==', currentStudent.id).onSnapshot(snap => {
+                    cache.results = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    liveUpdateUI();
+                });
+
+                if(isInitialLoad) {
+                    setTimeout(() => {
+                        isInitialLoad = false;
+                        showLoader(false);
+                        initDashboard();
+                    }, 1200); 
+                } else {
+                    updateSidebar();
+                    liveUpdateUI();
+                }
+            });
+        }
+
+        function liveUpdateUI() {
+            if($('view-dashboard').classList.contains('hidden')) return;
+            
+            const activeItem = document.querySelector('.nav-item.active');
+            if(activeItem) {
+                if(activeItem.getAttribute('onclick').includes('home')) renderTab('home', false);
+                if(activeItem.getAttribute('onclick').includes('results')) renderTab('results', false);
+            }
+
+            if(!$('marksheet-modal').classList.contains('hidden') && activeResultId) {
+                openMarksheet(activeResultId, true); 
             }
         }
 
-        async function loadCacheData() {
-            try {
-                const [c, e, s] = await Promise.all([
-                    db.collection('classes').where('institutionId', '==', currentInst.id).get(),
-                    db.collection('exams').where('institutionId', '==', currentInst.id).get(),
-                    db.collection('subjects').where('institutionId', '==', currentInst.id).get()
-                ]);
-                cache.classes = c.docs.map(d => ({id: d.id, ...d.data()}));
-                cache.exams = e.docs.map(d => ({id: d.id, ...d.data()}));
-                cache.subjects = s.docs.map(d => ({id: d.id, ...d.data()}));
-            } catch(err) { console.error("Cache Loading Error", err); }
-        }
-
         function logout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
-        function viewPublicPage() { if(currentInst) window.location.href = `home.html?id=${currentInst.id}`; }
-
-        // 7. Dashboard Engine
+        
         function initDashboard() {
-            $('view-login').classList.add('hidden');
             $('view-dashboard').classList.remove('hidden');
             updateSidebar();
             renderTab('home');
@@ -517,72 +466,74 @@
             }
         }
 
-        async function renderTab(tab) {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.getAttribute('onclick').includes(tab)));
+        function renderTab(tab, forceTitle = true) {
+            if(forceTitle) {
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.getAttribute('onclick').includes(tab)));
+            }
             const content = $('content-area');
             const title = $('page-title');
 
+            if(!currentStudent || !currentInst) return;
+
             if(tab === 'home') {
-                title.innerText = 'Overview';
+                if(forceTitle) title.innerText = 'Overview';
                 content.innerHTML = `
                     <div class="glass-panel p-8 rounded-2xl fade-in relative overflow-hidden group mb-6" style="border-left: 4px solid var(--primary);">
                         <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 opacity-50"></div>
                         <div class="relative z-10">
-                            <h3 class="text-2xl font-bold mb-2" style="color:var(--text-main)">Welcome Back, ${currentStudent.name} 👋</h3>
-                            <p class="text-sm" style="color:var(--text-muted)">Access your academic records and profile settings.</p>
-                            <button onclick="renderTab('results')" class="mt-4 px-5 py-2 bg-white text-black rounded-lg text-xs font-bold hover:bg-slate-200 transition shadow-lg">Check Results</button>
+                            <h3 class="text-2xl font-bold mb-2 text-main">Welcome Back, ${currentStudent.name} 👋</h3>
+                            <p class="text-sm text-muted">Access your academic records and profile settings.</p>
+                            <button onclick="renderTab('results')" class="mt-4 px-5 py-2 bg-dark text-main rounded-lg text-xs font-bold hover:bg-panel transition border-theme shadow-lg">Check Results</button>
                         </div>
                     </div>`;
             }
 
             if(tab === 'results') {
-                title.innerText = 'Academic Records';
+                if(forceTitle) title.innerText = 'Academic Records';
+                const results = cache.results;
                 
-                showLoader(true);
-                const rSnap = await db.collection('results').where('studentId', '==', currentStudent.id).get();
-                showLoader(false);
-                const results = rSnap.docs.map(d => ({id: d.id, ...d.data()}));
-                
-                if(results.length === 0) {
-                    content.innerHTML = `<div class="glass-panel p-12 text-center text-slate-500">No results published yet.</div>`;
-                } else {
-                    let html = `<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">`;
-                    
-                    results.forEach(r => {
-                        const exam = cache.exams.find(e => e.id === r.examId);
-                        if(!exam) return; 
-                        
-                        const pubDate = exam.publishDate ? new Date(exam.publishDate) : new Date(0);
-                        if(pubDate > new Date()) return; 
+                let html = `<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">`;
+                let hasPublished = false;
 
-                        html += `<div class="glass-panel p-6 rounded-2xl relative overflow-hidden group hover:border-slate-500 transition">
-                            <div class="flex justify-between items-start mb-6">
-                                <div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg" style="color:var(--primary)"><i class="fas fa-file-contract"></i></div>
-                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase border" style="color:var(--primary); border-color:var(--primary-glow)">Published</span>
-                            </div>
-                            <h3 class="text-xl font-bold mb-2" style="color:var(--text-main)">${exam.name}</h3>
-                            <button onclick="openMarksheet('${r.id}')" class="w-full mt-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-xs font-bold transition border border-white/10">View Marksheet</button>
-                        </div>`;
-                    });
+                results.forEach(r => {
+                    const exam = cache.exams.find(e => e.id === r.examId);
+                    if(!exam) return; 
                     
-                    html += `</div>`;
-                    content.innerHTML = html;
+                    const pubDate = exam.publishDate ? new Date(exam.publishDate) : new Date(0);
+                    if(pubDate > new Date() || exam.isPublished === false) return; 
+                    
+                    hasPublished = true;
+                    html += `<div class="glass-panel p-6 rounded-2xl relative overflow-hidden group hover:border-slate-500 transition">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="w-10 h-10 rounded-lg bg-dark flex items-center justify-center text-lg border-theme" style="color:var(--primary)"><i class="fas fa-file-contract"></i></div>
+                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase border" style="color:var(--primary); border-color:var(--primary-glow)">Published</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2 text-main">${exam.name}</h3>
+                        <button onclick="openMarksheet('${r.id}')" class="w-full mt-4 py-2 bg-dark hover:bg-panel text-main rounded-lg text-xs font-bold transition border-theme">View Marksheet</button>
+                    </div>`;
+                });
+                html += `</div>`;
+
+                if(!hasPublished) {
+                    html = `<div class="glass-panel p-12 text-center text-muted">No results published yet.</div>`;
                 }
+                content.innerHTML = html;
             }
 
             if(tab === 'profile') {
+                if(!forceTitle) return; 
                 title.innerText = 'Profile Settings';
                 const cls = cache.classes.find(c => c.id === currentStudent.classId)?.name || 'N/A';
                 content.innerHTML = `
                     <div class="max-w-2xl mx-auto glass-panel p-8 rounded-2xl fade-in flex items-start gap-8 border-l-4" style="border-left-color: var(--primary);">
-                        <div class="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-3xl border-2 border-white/10 flex-shrink-0" style="color:var(--primary)"><i class="fas fa-user"></i></div>
+                        <div class="w-20 h-20 rounded-full bg-dark flex items-center justify-center text-3xl border-theme flex-shrink-0" style="color:var(--primary)"><i class="fas fa-user"></i></div>
                         <div class="flex-1 space-y-5">
-                            <h3 class="text-lg font-bold border-b border-slate-700 pb-2" style="color:var(--text-main)">Personal Details</h3>
+                            <h3 class="text-lg font-bold border-b border-theme pb-2 text-main">Personal Details</h3>
                             <div class="grid grid-cols-2 gap-4">
-                                <div><label class="text-[10px] uppercase font-bold text-slate-500">Name</label><input id="pf-name" class="input-dark mt-1" value="${currentStudent.name}"></div>
-                                <div><label class="text-[10px] uppercase font-bold text-slate-500">Admission No</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed" value="${currentStudent.admissionNo}" disabled></div>
-                                <div><label class="text-[10px] uppercase font-bold text-slate-500">DOB</label><input type="date" id="pf-dob" class="input-dark mt-1 text-slate-300" value="${currentStudent.dob || ''}"></div>
-                                <div><label class="text-[10px] uppercase font-bold text-slate-500">Class</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed" value="${cls}" disabled></div>
+                                <div><label class="text-[10px] uppercase font-bold text-muted">Name</label><input id="pf-name" class="input-dark mt-1" value="${currentStudent.name}"></div>
+                                <div><label class="text-[10px] uppercase font-bold text-muted">Admission No</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed" value="${currentStudent.admissionNo}" disabled></div>
+                                <div><label class="text-[10px] uppercase font-bold text-muted">DOB</label><input type="date" id="pf-dob" class="input-dark mt-1" value="${currentStudent.dob || ''}"></div>
+                                <div><label class="text-[10px] uppercase font-bold text-muted">Class</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed" value="${cls}" disabled></div>
                             </div>
                             <button onclick="updateProfile()" class="w-full btn-primary py-3 rounded-xl mt-4">Save Changes</button>
                         </div>
@@ -595,62 +546,71 @@
                 showLoader(true);
                 const name = $('pf-name').value;
                 const dob = $('pf-dob').value;
-                
                 await db.collection('students').doc(currentStudent.id).update({ name, dob });
-                
-                currentStudent.name = name; 
-                currentStudent.dob = dob;
-                
                 showLoader(false);
-                updateSidebar();
                 showToast("Profile Updated Successfully");
             } catch (e) { showLoader(false); showToast("Update failed", "error"); }
         }
 
-        // 8. Result Formatter (Marksheet Viewer)
-        async function openMarksheet(rid) {
+        function numToWords(n) {
+            const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+            const b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
+            if ((n = n.toString()).length > 9) return 'Overflow';
+            let n_ = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+            if (!n_) return; 
+            let str = '';
+            str += (n_[1] != 0) ? (a[Number(n_[1])] || b[n_[1][0]] + ' ' + a[n_[1][1]]) + 'Crore ' : '';
+            str += (n_[2] != 0) ? (a[Number(n_[2])] || b[n_[2][0]] + ' ' + a[n_[2][1]]) + 'Lakh ' : '';
+            str += (n_[3] != 0) ? (a[Number(n_[3])] || b[n_[3][0]] + ' ' + a[n_[3][1]]) + 'Thousand ' : '';
+            str += (n_[4] != 0) ? (a[Number(n_[4])] || b[n_[4][0]] + ' ' + a[n_[4][1]]) + 'Hundred ' : '';
+            str += (n_[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n_[5])] || b[n_[5][0]] + ' ' + a[n_[5][1]]) : '';
+            return str.trim() ? str.trim() + " Only" : "Zero Only";
+        }
+
+        function openMarksheet(rid, isLiveUpdate = false) {
             try {
-                showLoader(true);
-                const doc = await db.collection('results').doc(rid).get();
-                showLoader(false);
+                activeResultId = rid;
+                const r = cache.results.find(x => x.id === rid);
                 
-                if(!doc.exists) return showToast("Result Not Found", "error");
-                const r = doc.data();
+                if(!r) {
+                    if(!isLiveUpdate) showToast("Result Not Found", "error");
+                    closeModal(); 
+                    return;
+                }
 
                 const inst = currentInst || {name: 'Unknown School'};
                 const exam = cache.exams.find(e => e.id === r.examId) || {name: 'Unknown Exam'};
                 const cls = cache.classes.find(c => c.id === currentStudent.classId) || {name: 'N/A'};
 
-                // Inject Basic Meta
                 $('mk-school').innerText = inst.name;
                 $('mk-addr').innerText = inst.address || '';
                 $('mk-exam').innerText = exam.name;
                 
-                // Inject Logos
-                const logo = $('mk-logo');
+                const logoContainer = $('mk-logo-container');
                 if(inst.profileImage) { 
-                    logo.src = inst.profileImage; 
-                    logo.style.display = 'block'; 
-                    if($('mk-watermark')) {
-                        $('mk-watermark').src = inst.profileImage;
-                        $('mk-watermark').style.display = 'block';
-                    }
+                    logoContainer.innerHTML = `<img src="${inst.profileImage}" class="max-w-full max-h-full object-contain">`;
+                    if($('mk-watermark')) { $('mk-watermark').src = inst.profileImage; $('mk-watermark').style.display = 'block'; }
                 } else { 
-                    logo.style.display = 'none'; 
-                    if($('mk-watermark')) $('mk-watermark').style.display = 'none';
+                    logoContainer.innerHTML = `<i class="fas fa-university text-3xl text-slate-300"></i>`;
+                    if($('mk-watermark')) $('mk-watermark').style.display = 'none'; 
                 }
 
-                const sig = $('mk-sig');
-                if(inst.signatureImage) { sig.src = inst.signatureImage; sig.style.display = 'block'; } else sig.style.display = 'none';
+                const sigContainer = $('mk-sig-container');
+                if(inst.signatureImage) { 
+                    sigContainer.innerHTML = `<img src="${inst.signatureImage}" class="max-h-full max-w-full object-contain filter grayscale contrast-125">`;
+                } else { 
+                    sigContainer.innerHTML = `<div class="h-8 border-b border-slate-400 w-32"></div>`;
+                }
 
-                // Inject Student Info
                 $('mk-name').innerText = currentStudent.name;
                 $('mk-adm').innerText = currentStudent.admissionNo;
                 $('mk-class').innerText = cls.name;
                 if($('mk-dob')) $('mk-dob').innerText = currentStudent.dob || 'N/A';
                 $('mk-date').innerText = new Date().toLocaleDateString();
 
-                // Compute Rows
+                const gradeScale = inst.customGradeScale || DEFAULT_SCALES[inst.gradeScale || 'standard'];
+                let legendStr = getGradeLegend(gradeScale);
+
                 let rows = ''; let maxTotal = 0; let grandTotal = 0; let failFlag = false;
                 const sMarks = r.subjectMarks || {};
                 
@@ -660,74 +620,49 @@
                         const full = Number(sub.fullMarks) || 100;
                         const pass = Number(sub.passMarks) || 33;
                         maxTotal += full;
-                        grandTotal += Number(marks);
-                        if(Number(marks) < pass) failFlag = true;
                         
-                        rows += `<tr>
-                            <td class="text-left font-bold pl-6 text-slate-800">${sub.name}</td>
-                            <td>${full}</td><td>${pass}</td>
-                            <td class="font-bold ${Number(marks) < pass ? 'text-red-600' : 'text-slate-900'}">${marks}</td>
-                        </tr>`;
+                        let grade = '-';
+                        if(marks !== '') {
+                            grandTotal += Number(marks);
+                            if(Number(marks) < pass) failFlag = true;
+                            grade = getGrade((Number(marks) / full) * 100, gradeScale);
+                        }
+                        
+                        rows += `<tr><td class="text-left font-bold pl-6 text-slate-800">${sub.name}</td><td>${full}</td><td>${pass}</td><td class="font-bold ${marks !== '' ? (Number(marks) < pass ? 'text-red-600' : 'text-emerald-600') : 'text-slate-900'}">${marks}</td><td class="font-bold text-slate-700">${grade}</td></tr>`;
                     }
                 });
                 
-                $('mk-body').innerHTML = rows || `<tr><td colspan="4" class="text-center py-4">No subjects found.</td></tr>`;
-                
-                // Analytics 
+                $('mk-body').innerHTML = rows || `<tr><td colspan="5" class="text-center py-4">No subjects found.</td></tr>`;
                 $('mk-total').innerText = `${grandTotal} / ${maxTotal}`;
                 $('mk-total-words').innerText = numToWords(grandTotal);
+                $('mk-legend').innerHTML = `<strong>GRADING LEGEND:</strong> ${legendStr}`;
                 
                 const finalPct = maxTotal > 0 ? ((grandTotal / maxTotal) * 100).toFixed(1) : 0;
                 $('mk-pct').innerText = finalPct + '%';
-                
                 const attVal = r.attendance || '0';
                 const attTotal = r.totalAttendance || '0';
-                $('mk-att').innerText = `${attVal} / ${attTotal}`;
+                $('mk-att').innerText = `${attVal}/${attTotal}`;
                 
-                $('mk-rank').innerText = r.rank ? `#${r.rank}` : '-';
-
                 const status = failFlag ? 'FAIL' : 'PASS';
                 const clsName = failFlag ? 'fail' : 'pass';
                 $('mk-stamp-container').innerHTML = `<div class="stamp-status ${clsName}">${status}</div>`;
 
-                // Classification 
-                let div = "Fail";
-                if(!failFlag) {
-                    if(finalPct >= 75) div = "Distinction";
-                    else if(finalPct >= 60) div = "First Class";
-                    else if(finalPct >= 50) div = "Second Class";
-                    else div = "Pass Class";
-                }
-                $('mk-div').innerText = div;
+                let finalGrade = getGrade(finalPct, gradeScale);
+                if(status === 'FAIL') finalGrade = 'F';
+                $('mk-overall-grade').innerText = finalGrade;
 
-                // Dynamic Insights
-                let appreciation = "Good effort."; let motivation = "Keep working hard!";
-                if(failFlag) {
-                    appreciation = "You faced some challenges this term."; 
-                    motivation = "Every setback is a setup for a comeback. We believe in you!";
-                } else if(finalPct >= 90) { 
-                    appreciation = "Exceptional performance! You have demonstrated outstanding mastery."; 
-                    motivation = "Your dedication is truly inspiring. Keep setting the bar high!"; 
-                } else if(finalPct >= 80) { 
-                    appreciation = "Excellent work! You have a strong grasp of the core concepts."; 
-                    motivation = "Consistency is key. Continue this great momentum."; 
-                } else if(finalPct >= 60) { 
-                    appreciation = "Very Good. You are making steady progress in your academic journey."; 
-                    motivation = "Believe in your potential, you are capable of even more."; 
+                if(!isLiveUpdate) {
+                    $('marksheet-modal').classList.remove('hidden');
                 }
 
-                if($('mk-appreciation')) $('mk-appreciation').innerText = `"${appreciation}"`;
-                if($('mk-motivation')) $('mk-motivation').innerText = motivation;
-
-                // Show Document
-                $('marksheet-modal').classList.remove('hidden');
-
-            } catch (err) { console.error(err); showLoader(false); showToast("Error rendering marksheet", "error"); }
+            } catch (err) { console.error(err); if(!isLiveUpdate) showToast("Error rendering marksheet", "error"); }
         }
 
-        function closeModal() { $('marksheet-modal').classList.add('hidden'); }
+        function closeModal() { 
+            $('marksheet-modal').classList.add('hidden'); 
+            activeResultId = null; 
+        }
 
-        // 9. Printing & Sharing Actions
         async function shareResult() {
             try {
                 showLoader(true);

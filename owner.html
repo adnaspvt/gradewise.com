@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-<script src="security.js"></script>
+    <script src="security.js"></script>
     <style>
         /* --- ORIGINAL DESIGN SYSTEM --- */
         :root {
@@ -226,6 +226,10 @@
         const SESSION_KEY = 'GradeWise_owner_session';
         const CREDENTIALS = { id: 'owner', pass: 'admin123' };
 
+        // Globals for Charts
+        let oMainChart = null;
+        let oPieChart = null;
+
         // --- HELPERS ---
         const $ = id => document.getElementById(id);
         const showLoader = (show) => $('global-loader').classList.toggle('hidden', !show);
@@ -388,7 +392,11 @@
                         </div>
                     `;
                     
-                    new Chart($('mainChart'), {
+                    // Destroy old charts to prevent memory leaks and flickering
+                    if (oMainChart) oMainChart.destroy();
+                    if (oPieChart) oPieChart.destroy();
+
+                    oMainChart = new Chart($('mainChart'), {
                         type: 'line',
                         data: {
                             labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Current'],
@@ -402,7 +410,7 @@
                         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#1f2937' } }, x: { grid: { display: false } } } }
                     });
 
-                    new Chart($('pieChart'), {
+                    oPieChart = new Chart($('pieChart'), {
                         type: 'doughnut',
                         data: {
                             labels: ['Schools', 'Students', 'Exams'],
@@ -541,6 +549,7 @@
                                                 <label class="text-xs text-slate-500 uppercase font-bold">Visual Theme Preset</label>
                                                 <select id="c-theme" class="input-dark mt-1 cursor-pointer">
                                                     <option value="deep_space">Deep Space (Default)</option>
+                                                    <option value="minimal_light">Minimal Light</option>
                                                     <option value="midnight_blue">Midnight Blue</option>
                                                     <option value="emerald_city">Emerald City</option>
                                                     <option value="crimson_fury">Crimson Fury</option>
@@ -554,7 +563,6 @@
                                                     <option value="cyber_neon">Cyber Neon</option>
                                                     <option value="forest_whisper">Forest Whisper</option>
                                                     <option value="golden_luxury">Golden Luxury</option>
-                                                    <option value="minimal_light">Minimal Light</option>
                                                 </select>
                                             </div>
                                             <div><label class="text-xs text-slate-500 uppercase font-bold">Logo</label><input type="file" id="c-logo" class="input-dark mt-1 text-xs"></div>
@@ -605,8 +613,8 @@
                     ${list.map(i => `
                     <tr class="hover:bg-slate-800/50 transition group">
                         <td class="p-5 font-bold text-white flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-sm font-mono text-indigo-400 border border-slate-700 shadow-inner">${i.name.substring(0,2).toUpperCase()}</div>
-                            <div><div class="text-sm">${i.name}</div><div class="text-[10px] text-slate-500">ID: ${i.id}</div></div>
+                            <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-sm font-mono text-indigo-400 border border-slate-700 shadow-inner">${(i.name || 'UN').substring(0,2).toUpperCase()}</div>
+                            <div><div class="text-sm">${i.name || 'Unnamed School'}</div><div class="text-[10px] text-slate-500">ID: ${i.id}</div></div>
                         </td>
                         <td class="p-5 font-mono text-xs text-indigo-300">${i.email}</td>
                         <td class="p-5"><span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-2 w-fit ${i.isActive!==false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}"><span class="w-1.5 h-1.5 rounded-full ${i.isActive!==false?'bg-emerald-400':'bg-red-400'} animate-pulse"></span>${i.isActive!==false?'Online':'Suspended'}</span></td>
@@ -747,9 +755,14 @@
                 if(logoInput && logoInput.files.length > 0) {
                     const r = new FileReader();
                     r.onload = async (e) => {
-                        config.brandLogo = await uploadImage('site/global_logo.png', e.target.result);
-                        await saveSiteConfig(config);
-                        showToast("Global Site & Logo Published");
+                        try {
+                            config.brandLogo = await uploadImage('site/global_logo.png', e.target.result);
+                            await saveSiteConfig(config);
+                            showToast("Global Site & Logo Published");
+                        } catch(imgErr) {
+                            console.error("Image Upload Failed", imgErr);
+                            showToast("Text saved, but logo upload failed.", "error");
+                        }
                         btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
                     };
                     r.readAsDataURL(logoInput.files[0]);
