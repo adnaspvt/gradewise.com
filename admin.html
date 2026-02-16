@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Console | GradeWise</title>
+    <title>Admin Console | easyresults</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="security.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@400;700;900&family=Plus+Jakarta+Sans:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -114,6 +115,7 @@
             .overlay.open { display: block; }
             .command-bar { min-width: 90%; flex-wrap: wrap; justify-content: center; gap: 1rem; bottom: 1rem; border-radius: 16px; padding: 0.8rem; }
             .stat-group { align-items: center; }
+            .a4-container { transform: scale(0.40); margin-top: -15%; margin-bottom: -30%; }
         }
     </style>
 </head>
@@ -140,7 +142,7 @@
                 <div><label class="text-[10px] font-bold text-muted uppercase ml-1">Password</label><input type="password" id="login-pass" class="input-field" required></div>
                 <button id="btn-login" class="w-full btn-primary py-3.5 rounded-xl shadow-lg mt-2">Access Dashboard</button>
             </form>
-            <div class="mt-8 text-center text-xs text-muted"><a href="home.html" class="hover:text-main transition">Return to Portal</a></div>
+            <div class="mt-8 text-center text-xs text-muted"><a id="link-return-portal" href="#" class="hover:text-main transition">Return to Portal</a></div>
         </div>
     </section>
 
@@ -226,7 +228,19 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
 
-        const SESSION_KEY = 'GradeWise_admin_session';
+        // --- GLOBAL BRANDING LISTENER ---
+        db.collection('site_config').doc('main').onSnapshot(doc => {
+            if(doc.exists) {
+                const brandName = doc.data().brandName || 'easyresults';
+                const currentTitle = document.title.split('|')[0].trim();
+                document.title = `${currentTitle} | ${brandName}`;
+                document.querySelectorAll('.dynamic-brand-name').forEach(el => {
+                    el.innerText = brandName;
+                });
+            }
+        });
+
+        const SESSION_KEY = 'easyresults_admin_session';
         let currentUser = null;
         let activeChart = null;
         let localState = { students: [], classes: [], exams: [], results: [], subjects: [] };
@@ -265,7 +279,6 @@
             setTimeout(() => el.remove(), 4000);
         }
 
-        // --- DYNAMIC GRADING LOGIC ---
         function getGrade(pct, customScale) {
             pct = Number(pct);
             if(!customScale || customScale.length === 0) return '-';
@@ -343,7 +356,16 @@
         function checkSession() {
             const session = localStorage.getItem(SESSION_KEY);
             if(session) { currentUser = JSON.parse(session); initDashboard(); } 
-            else { $('global-loader').classList.add('hidden'); $('view-login').classList.remove('hidden'); }
+            else { 
+                $('global-loader').classList.add('hidden'); 
+                $('view-login').classList.remove('hidden'); 
+                
+                const lastSchool = localStorage.getItem('easyresults_last_school');
+                const returnLink = document.getElementById('link-return-portal');
+                if(returnLink) {
+                    returnLink.href = lastSchool ? `home.html?id=${lastSchool}` : 'index.html';
+                }
+            }
         }
 
         async function initDashboard() {
@@ -359,7 +381,15 @@
             renderTab('overview');
         }
 
-        function logout() { localStorage.removeItem(SESSION_KEY); location.reload(); }
+        function logout() { 
+            const instId = currentUser ? currentUser.id : null;
+            if(instId) localStorage.setItem('easyresults_last_school', instId);
+            localStorage.removeItem(SESSION_KEY); 
+            
+            const lastSchool = localStorage.getItem('easyresults_last_school');
+            window.location.href = lastSchool ? `home.html?id=${lastSchool}` : 'index.html';
+        }
+        
         function viewPublicPage() { window.open(`home.html?id=${currentUser.id}`, '_blank'); }
         window.onload = checkSession;
 
@@ -444,13 +474,22 @@
                 
                 content.innerHTML = `
                     <div class="grid lg:grid-cols-3 gap-6 mb-6 fade-in h-[calc(100vh-180px)]">
-                        <div class="glass-panel p-6 rounded-2xl lg:col-span-1 h-fit">
+                        <div class="glass-panel p-6 rounded-2xl lg:col-span-1 max-h-full overflow-y-auto">
                             <h4 class="font-bold mb-4 border-b border-theme pb-2 text-main">Register Student</h4>
                             <div class="space-y-3">
-                                <input id="s-name" class="input-field" placeholder="Full Name">
-                                <input id="s-adm" class="input-field" placeholder="Admission No (Unique)">
-                                <div class="grid grid-cols-2 gap-2"><input id="s-dob" type="date" class="input-field text-muted"><select id="s-class" class="input-field text-muted"><option value="">Class...</option>${opts}</select></div>
-                                <button onclick="addStudent()" class="w-full btn-primary mt-2">Register</button>
+                                <input id="s-name" class="input-field text-sm" placeholder="Full Name">
+                                <input id="s-adm" class="input-field text-sm" placeholder="Admission No (Unique)">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input id="s-dob" type="date" class="input-field text-muted text-sm">
+                                    <select id="s-class" class="input-field text-muted text-sm"><option value="">Class...</option>${opts}</select>
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-theme">
+                                    <h4 class="font-bold mb-3 text-[10px] uppercase tracking-wider text-muted">Guardian Details</h4>
+                                    <input id="s-parent" class="input-field mb-2 text-sm" placeholder="Parent / Guardian Name">
+                                    <input id="s-phone" class="input-field mb-2 text-sm" placeholder="Mobile Number">
+                                    <input id="s-address" class="input-field text-sm" placeholder="Home Address">
+                                </div>
+                                <button onclick="addStudent()" class="w-full btn-primary mt-2">Register Student</button>
                             </div>
                             <div class="mt-6 pt-6 border-t border-theme">
                                 <h4 class="font-bold mb-2 text-xs uppercase tracking-wider text-main">Bulk Actions</h4>
@@ -672,7 +711,6 @@
             }
         }
 
-
         // --- UNIVERSAL EDIT FUNCTION ---
         function editItem(type, id) {
             $('modal-overlay').classList.remove('hidden');
@@ -687,11 +725,25 @@
             else if(type === 'students') {
                 const classOpts = localState.classes.map(c => `<option value="${c.id}" ${c.id === item.classId ? 'selected' : ''}>${c.name}</option>`).join('');
                 html = `<div class="space-y-4">
-                    <div><label class="text-xs font-bold text-muted uppercase">Full Name</label><input id="edit-val-name" class="input-field" value="${item.name}"></div>
-                    <div><label class="text-xs font-bold text-muted uppercase">Admission No</label><input id="edit-val-adm" class="input-field" value="${item.admissionNo}"></div>
-                    <div><label class="text-xs font-bold text-muted uppercase">Date of Birth</label><input id="edit-val-dob" type="date" class="input-field text-muted" value="${item.dob || ''}"></div>
-                    <div><label class="text-xs font-bold text-muted uppercase">Class</label><select id="edit-val-class" class="input-field text-muted">${classOpts}</select></div>
-                    <button onclick="saveEdit('${type}', '${id}')" class="w-full btn-primary">Save Changes</button>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-xs font-bold text-muted uppercase">Full Name</label><input id="edit-val-name" class="input-field text-sm" value="${item.name}"></div>
+                        <div><label class="text-xs font-bold text-muted uppercase">Admission No</label><input id="edit-val-adm" class="input-field text-sm" value="${item.admissionNo}"></div>
+                        <div><label class="text-xs font-bold text-muted uppercase">Date of Birth</label><input id="edit-val-dob" type="date" class="input-field text-muted text-sm" value="${item.dob || ''}"></div>
+                        <div><label class="text-xs font-bold text-muted uppercase">Class</label><select id="edit-val-class" class="input-field text-muted text-sm">${classOpts}</select></div>
+                    </div>
+                    <div class="border-t border-theme pt-4 mt-2">
+                        <h4 class="text-xs font-bold text-main mb-3 uppercase tracking-wider text-red-400">Security</h4>
+                        <div><label class="text-xs font-bold text-muted uppercase">Student Password</label><input id="edit-val-pass" class="input-field text-sm" value="${item.password || ''}"></div>
+                    </div>
+                    <div class="border-t border-theme pt-4 mt-2">
+                        <h4 class="text-xs font-bold text-main mb-3 uppercase tracking-wider">Guardian Details</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs font-bold text-muted uppercase">Parent/Guardian Name</label><input id="edit-val-parent" class="input-field text-sm" value="${item.parentName || ''}"></div>
+                            <div><label class="text-xs font-bold text-muted uppercase">Mobile Number</label><input id="edit-val-phone" class="input-field text-sm" value="${item.contactPhone || ''}"></div>
+                            <div class="col-span-2"><label class="text-xs font-bold text-muted uppercase">Home Address</label><input id="edit-val-address" class="input-field text-sm" value="${item.address || ''}"></div>
+                        </div>
+                    </div>
+                    <button onclick="saveEdit('${type}', '${id}')" class="w-full btn-primary mt-2">Save Changes</button>
                 </div>`;
             }
             else if(type === 'exams') {
@@ -711,11 +763,19 @@
             if(type === 'classes') updateData = { name: $('edit-val-name').value };
             else if(type === 'students') {
                 const newAdm = $('edit-val-adm').value;
-                // Add duplicate check for edits!
                 if(localState.students.some(s => s.admissionNo === newAdm && s.id !== id)) {
                     showLoader(false); return showToast("Admission No already exists", "error");
                 }
-                updateData = { name: $('edit-val-name').value, admissionNo: newAdm, dob: $('edit-val-dob').value, classId: $('edit-val-class').value };
+                updateData = { 
+                    name: $('edit-val-name').value, 
+                    admissionNo: newAdm, 
+                    dob: $('edit-val-dob').value, 
+                    classId: $('edit-val-class').value,
+                    password: $('edit-val-pass').value,
+                    parentName: $('edit-val-parent').value,
+                    contactPhone: $('edit-val-phone').value,
+                    address: $('edit-val-address').value
+                };
             }
             else if(type === 'exams') { const d = $('edit-val-date').value; updateData = { name: $('edit-val-name').value, publishDate: d ? new Date(d).toISOString() : new Date().toISOString() }; }
             else if(type === 'subjects') updateData = { name: $('edit-sub-name').value, fullMarks: Number($('edit-sub-full').value), passMarks: Number($('edit-sub-pass').value) };
@@ -728,10 +788,24 @@
         function closeModal() { $('modal-overlay').classList.add('hidden'); }
 
         async function addClass() { const n = $('new-class').value; if(n) { showLoader(true); await db.collection('classes').add({ institutionId: currentUser.id, name: n, createdAt: new Date().toISOString() }); await renderTab('classes'); showLoader(false); showToast("Class Added"); } }
+        
         async function addStudent() {
             const n=$('s-name').value, a=$('s-adm').value, c=$('s-class').value, d=$('s-dob').value;
-            if(n&&a&&c) { showLoader(true); if(localState.students.some(s => s.admissionNo === a)) { showLoader(false); return showToast("Admission No exists", "error"); } await db.collection('students').add({ institutionId: currentUser.id, name: n, admissionNo: a, classId: c, dob: d, password: a }); await renderTab('students'); showLoader(false); showToast("Student Added"); }
+            const pName=$('s-parent').value, phone=$('s-phone').value, addr=$('s-address').value;
+            if(n&&a&&c) { 
+                showLoader(true); 
+                if(localState.students.some(s => s.admissionNo === a)) { showLoader(false); return showToast("Admission No exists", "error"); } 
+                await db.collection('students').add({ 
+                    institutionId: currentUser.id, 
+                    name: n, admissionNo: a, classId: c, dob: d, password: a,
+                    parentName: pName, contactPhone: phone, address: addr
+                }); 
+                await renderTab('students'); showLoader(false); showToast("Student Added"); 
+            } else {
+                showToast("Name, Adm No and Class are required", "error");
+            }
         }
+        
         async function addExam() {
             const n = $('new-exam').value; const d = $('new-exam-date').value;
             if(n) { showLoader(true); const pubDate = d ? new Date(d).toISOString() : new Date().toISOString(); await db.collection('exams').add({ institutionId: currentUser.id, name: n, publishDate: pubDate, isPublished: false }); await renderTab('exams'); showLoader(false); showToast("Exam Created"); }
@@ -743,7 +817,6 @@
                 const batch = db.batch();
                 batch.delete(db.collection(col).doc(id));
                 
-                // Automatically clean up orphaned results!
                 if(col === 'students') {
                     const res = await db.collection('results').where('studentId', '==', id).get();
                     res.forEach(r => batch.delete(r.ref));
@@ -769,7 +842,7 @@
             const filterClass = $('s-filter-class') ? $('s-filter-class').value : '';
             const search = $('s-search') ? $('s-search').value.toLowerCase() : '';
             if (filterClass) list = list.filter(s => s.classId === filterClass);
-            if (search) list = list.filter(s => s.name.toLowerCase().includes(search) || s.admissionNo.toLowerCase().includes(search));
+            if (search) list = list.filter(s => s.name.toLowerCase().includes(search) || s.admissionNo.toLowerCase().includes(search) || (s.parentName && s.parentName.toLowerCase().includes(search)));
 
             const sort = $('s-sort') ? $('s-sort').value : 'name_asc';
             list.sort((a, b) => {
@@ -788,7 +861,10 @@
                 return `<div class="p-4 flex justify-between items-center hover:bg-slate-800/10 transition group px-6">
                     <div class="flex items-center gap-4">
                         <input type="checkbox" class="stu-check rounded bg-dark border-theme" value="${s.id}" onchange="updateBulkState()">
-                        <div><p class="font-bold text-sm text-main">${s.name}</p><p class="text-[10px] text-muted font-mono">${s.admissionNo} • <span class="text-indigo-400">${cls}</span></p></div>
+                        <div>
+                            <p class="font-bold text-sm text-main">${s.name}</p>
+                            <p class="text-[10px] text-muted font-mono">${s.admissionNo} • <span class="text-indigo-400">${cls}</span> ${s.parentName ? `• <span class="opacity-70"><i class="fas fa-user-friends mr-1"></i>${s.parentName}</span>` : ''}</p>
+                        </div>
                     </div>
                     <div class="flex gap-2 opacity-50 group-hover:opacity-100 transition">
                         <button onclick="editItem('students','${s.id}')" class="p-2 text-muted hover:text-blue-500 bg-panel rounded transition border border-theme"><i class="fas fa-edit"></i></button>
@@ -847,7 +923,45 @@
         async function addSub(cid) { const n=$('sb-n').value, f=$('sb-f').value, p=$('sb-p').value; if(n) { await db.collection('subjects').add({ institutionId: currentUser.id, classId: cid, name: n, fullMarks: Number(f), passMarks: Number(p) }); await refreshData(); renderSubjectModal(cid, f, p); } }
         async function delSub(sid, cid) { await db.collection('subjects').doc(sid).delete(); await refreshData(); renderSubjectModal(cid); }
 
-        function downloadStudentTemplate() { const ws = XLSX.utils.aoa_to_sheet([["Full Name", "Admission No", "Date of Birth (YYYY-MM-DD)", "Class Name"]]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, "Student_Template.xlsx"); }
+        function downloadStudentTemplate() { 
+            const ws = XLSX.utils.aoa_to_sheet([["Full Name", "Admission No", "Date of Birth (YYYY-MM-DD)", "Class Name", "Parent Name", "Contact Phone", "Address"]]); 
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, "Student_Template.xlsx"); 
+        }
+
+        function exportStudents() {
+            if (!localState.students || localState.students.length === 0) {
+                return showToast("No students to export", "error");
+            }
+            
+            showLoader(true);
+            try {
+                const data = localState.students.map(s => {
+                    const cls = localState.classes.find(c => c.id === s.classId);
+                    return {
+                        "Full Name": s.name,
+                        "Admission No": s.admissionNo,
+                        "Date of Birth (YYYY-MM-DD)": s.dob || "",
+                        "Class Name": cls ? cls.name : "Unassigned",
+                        "Parent Name": s.parentName || "",
+                        "Contact Phone": s.contactPhone || "",
+                        "Address": s.address || ""
+                    };
+                });
+
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Students_Export");
+                XLSX.writeFile(wb, `Student_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+                
+                showLoader(false);
+                showToast("Export successful!");
+            } catch (err) {
+                console.error("Export Error:", err);
+                showLoader(false);
+                showToast("Failed to export students", "error");
+            }
+        }
+
         function bulkImport() {
             const f=$('s-file').files[0]; if(!f) return; const r=new FileReader();
             r.onload = async (e) => {
@@ -860,6 +974,9 @@
                     const name = row['Full Name'] || row['Name']; 
                     const adm = String(row['Admission No'] || row['AdmissionNo']); 
                     const clsName = String(row['Class Name'] || row['Class']);
+                    const pName = row['Parent Name'] || '';
+                    const phone = row['Contact Phone'] || row['Phone'] || '';
+                    const addr = row['Address'] || '';
                     
                     if(name && adm && clsName) {
                         let classObj = localState.classes.find(c => c.name.toLowerCase() === clsName.toLowerCase());
@@ -871,7 +988,10 @@
                             localState.classes.push({ id: classId, name: clsName }); 
                         }
                         const ref = db.collection('students').doc(); 
-                        batch.set(ref, { institutionId: currentUser.id, name: String(name), admissionNo: adm, classId: classId, password: adm }); 
+                        batch.set(ref, { 
+                            institutionId: currentUser.id, name: String(name), admissionNo: adm, classId: classId, password: adm,
+                            parentName: pName, contactPhone: phone, address: addr 
+                        }); 
                         count++;
                     }
                 }
@@ -1076,7 +1196,7 @@
                     <table class="mk-table mb-auto"><thead><tr><th class="text-left pl-6">Subject</th><th width="15%">Max Marks</th><th width="15%">Pass Marks</th><th width="15%">Obtained</th><th width="15%">Grade</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="bg-slate-100 text-slate-900"><td class="text-left font-black pl-6 text-sm uppercase tracking-widest">Grand Total</td><td colspan="2" class="text-center font-bold text-slate-500 text-xs uppercase">${numToWords(total)}</td><td class="text-center text-lg font-bold text-slate-900 py-3" colspan="2">${total}</td></tr></tfoot></table>
                     ${legendStr ? `<div class="mt-4 mb-2 text-[8px] text-slate-500 font-mono text-center border-t border-slate-200 pt-2"><strong>GRADING LEGEND:</strong> ${legendStr}</div>` : ''}
                     <div class="feedback-section"><div class="appreciation-box"><h4><i class="fas fa-quote-left mr-2 opacity-50"></i>Insight</h4><p class="appr-text">"${appreciation}"</p><p class="motiv-text">"${motivation}"</p></div><div class="stats-box"><div class="stat-row mb-1"><span class="stat-label">Percentage</span><span class="stat-val">${finalPct}%</span></div><div class="stat-row mb-1"><span class="stat-label">Overall Grade</span><span class="stat-val text-sm">${finalGrade}</span></div><div class="stat-row mb-1"><span class="stat-label">Attendance</span><span class="stat-val text-sm">${attVal}/${totalAtt}</span></div><div class="stat-row mt-2"><span class="stat-label">Result Status</span><div class="stamp-status ${clsName}">${status}</div></div></div></div>
-                    <div class="doc-footer border-t-2 border-slate-900 pt-6 mt-4 flex justify-between items-end"><div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">This document is securely processed and digitally generated by GradeWise Cloud Systems.<br>Valid academic record. No physical signature required for web verification.</div><div class="principal-box text-center"><div class="h-16 flex items-end justify-center mb-1">${currentUser.signatureImage ? `<img src="${currentUser.signatureImage}" class="max-h-full max-w-full object-contain filter grayscale contrast-125">` : '<div class="h-8 border-b border-black w-32"></div>'}</div><div class="border-t-2 border-slate-900 w-32 mx-auto mb-1"></div><p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p></div></div>
+                    <div class="doc-footer border-t-2 border-slate-900 pt-6 mt-4 flex justify-between items-end"><div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">This document is securely processed and digitally generated by easyresults Cloud Systems.<br>Valid academic record. No physical signature required for web verification.</div><div class="principal-box text-center"><div class="h-16 flex items-end justify-center mb-1">${currentUser.signatureImage ? `<img src="${currentUser.signatureImage}" class="max-h-full max-w-full object-contain filter grayscale contrast-125">` : '<div class="h-8 border-b border-black w-32"></div>'}</div><div class="border-t-2 border-slate-900 w-32 mx-auto mb-1"></div><p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p></div></div>
                 </div></div></div></div>
                 <div class="text-center mt-4 flex justify-center gap-4">
                     <button onclick="downloadPDF()" class="btn-primary"><i class="fas fa-file-pdf mr-2"></i> Download PDF</button>

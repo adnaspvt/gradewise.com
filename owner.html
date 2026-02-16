@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GradeWise | Command Center</title>
+    <title>easyresults | Command Center</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="security.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -120,9 +121,9 @@
         <aside class="w-72 bg-[#020617] border-r border-slate-800 flex flex-col flex-shrink-0 z-40">
             <div class="p-8 border-b border-slate-800/50">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">GW</div>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">ER</div>
                     <div>
-                        <h2 class="font-bold text-white text-lg leading-tight">GradeWise</h2>
+                        <h2 class="font-bold text-white text-lg leading-tight">easyresults</h2>
                         <span class="text-[10px] text-blue-400 font-mono font-bold tracking-widest uppercase">God Mode</span>
                     </div>
                 </div>
@@ -165,7 +166,7 @@
                 <div class="flex items-center gap-4">
                     <div class="text-right hidden md:block">
                         <p class="text-xs font-bold text-white">Super Admin</p>
-                        <p class="text-[10px] text-slate-500">owner@gradewise.com</p>
+                        <p class="text-[10px] text-slate-500">owner@easyresults.com</p>
                     </div>
                     <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400">
                         <i class="fas fa-user-secret"></i>
@@ -223,7 +224,7 @@
         const auth = firebase.auth();
         const storage = firebase.storage();
 
-        const SESSION_KEY = 'GradeWise_owner_session';
+        const SESSION_KEY = 'easyresults_owner_session';
         const CREDENTIALS = { id: 'owner', pass: 'admin123' };
 
         // Globals for Charts
@@ -471,7 +472,7 @@
                                 <div class="glass-card p-8 rounded-2xl space-y-6">
                                     <h4 class="text-lg font-bold text-indigo-400 flex items-center gap-2"><i class="fas fa-heading"></i> Hero & Brand</h4>
                                     <div class="grid grid-cols-2 gap-4">
-                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Website Name</label><input id="g-brand" class="input-dark mt-1" value="${c.brandName||'GradeWise'}"></div>
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Website Name</label><input id="g-brand" class="input-dark mt-1" value="${c.brandName||'easyresults'}"></div>
                                         <div>
                                             <label class="text-xs font-bold text-slate-500 uppercase">Logo Upload</label>
                                             <input type="file" id="g-logo" class="input-dark mt-1 text-xs" accept="image/*">
@@ -692,7 +693,7 @@
         function loginAs(id) {
             const inst = window.currentInstList.find(x => x.id === id);
             if (inst) {
-                localStorage.setItem('GradeWise_admin_session', JSON.stringify(inst)); 
+                localStorage.setItem('easyresults_admin_session', JSON.stringify(inst)); 
                 window.open('admin.html', '_blank');
             } else {
                 showToast("Error locating institution data", "error");
@@ -792,7 +793,7 @@
                 };
                 const a=document.createElement('a'); 
                 a.href='data:text/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data));
-                a.download=`gradewise_cloud_backup_${new Date().toISOString().split('T')[0]}.json`; 
+                a.download=`easyresults_cloud_backup_${new Date().toISOString().split('T')[0]}.json`; 
                 document.body.appendChild(a); a.click(); a.remove();
             } catch(e) { console.error(e); showToast("Backup Failed", "error"); }
             showLoader(false);

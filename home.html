@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Institution Portal | GradeWise</title>
+    <title>Institution Portal | easyresults</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="security.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -116,7 +117,7 @@
                 </div>
             </div>
             <a href="index.html" class="hidden md:flex items-center gap-2 px-4 py-2 bg-dark hover:bg-panel rounded-lg transition text-xs font-bold text-muted border-theme hover:text-main">
-                Powered by GradeWise <i class="fas fa-bolt" style="color: var(--brand);"></i>
+                Powered by <span class="dynamic-brand-name">easyresults</span> <i class="fas fa-bolt" style="color: var(--brand);"></i>
             </a>
         </div>
     </nav>
@@ -202,7 +203,7 @@
         </div>
         <h2 class="text-3xl font-bold text-main mb-3">Portal Unavailable</h2>
         <p class="text-muted mb-8 max-w-md leading-relaxed">This institution's digital portal is currently inactive or the link is incorrect. Please contact the administration.</p>
-        <a href="index.html" class="px-8 py-3 bg-panel hover:bg-dark text-main font-bold rounded-xl transition border-theme">Back to GradeWise</a>
+        <a href="index.html" class="px-8 py-3 bg-panel hover:bg-dark text-main font-bold rounded-xl transition border-theme">Back to <span class="dynamic-brand-name">GradeWise</span></a>
     </div>
 
     <script>
@@ -216,6 +217,23 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+
+        // --- GLOBAL BRANDING LISTENER ---
+        db.collection('site_config').doc('main').onSnapshot(doc => {
+            if(doc.exists) {
+                const brandName = doc.data().brandName || 'easyresults';
+                
+                // Instantly change the Browser Tab Title
+                const currentTitleParts = document.title.split('|');
+                const currentTitle = currentTitleParts[0].trim();
+                document.title = `${currentTitle} | ${brandName}`;
+
+                // Instantly update any text on the screen with the class "dynamic-brand-name"
+                document.querySelectorAll('.dynamic-brand-name').forEach(el => {
+                    el.innerText = brandName;
+                });
+            }
+        });
 
         const THEMES = {
             'deep_space': { bg: '#020617', glass: 'rgba(15, 23, 42, 0.7)', text: '#f8fafc', muted: '#94a3b8' },
@@ -247,6 +265,8 @@
 
                 document.getElementById('nav-name').innerText = data.name;
                 document.getElementById('hero-name-highlight').innerText = data.name;
+                
+                // Set initial title (the Global Listener will append the brand name to this)
                 document.title = `${data.name} | Portal`;
                 
                 if(data.tagline) document.getElementById('hero-tagline').innerText = data.tagline;
@@ -276,11 +296,12 @@
 
                 document.getElementById('link-student').onclick = (e) => {
                     e.preventDefault();
-                    localStorage.setItem('grasewise_last_school', doc.id); 
+                    localStorage.setItem('easyresults_last_school', doc.id); 
                     window.location.href = `student.html?id=${doc.id}`; 
                 };
                 document.getElementById('link-admin').onclick = (e) => {
                     e.preventDefault();
+                    localStorage.setItem('easyresults_last_school', doc.id); // FIXED THIS LINE
                     window.location.href = `admin.html`; 
                 };
 
