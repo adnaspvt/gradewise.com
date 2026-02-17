@@ -14,7 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <style>
         /* --- ORIGINAL DESIGN SYSTEM --- */
@@ -234,7 +233,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const storage = firebase.storage();
 
         const SESSION_KEY = 'easyresults_owner_session';
         const CREDENTIALS = { id: 'owner', pass: 'admin123' };
@@ -299,7 +297,7 @@
             window.location.reload();
         }
 
-        // --- ADAPTER FUNCTIONS (Embedded for Compat) ---
+        // --- ADAPTER FUNCTIONS ---
         async function fetchCollection(colName) {
             const snap = await db.collection(colName).get();
             return snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -317,13 +315,6 @@
             await db.collection(colName).doc(id).delete();
         }
 
-        async function uploadImage(path, dataUrl) {
-            if(!dataUrl || !dataUrl.startsWith('data:')) return null;
-            const ref = storage.ref().child(path);
-            await ref.putString(dataUrl, 'data_url');
-            return await ref.getDownloadURL();
-        }
-
         async function getSiteConfig() {
             const doc = await db.collection('site_config').doc('main').get();
             return doc.exists ? doc.data() : {};
@@ -332,6 +323,7 @@
         async function saveSiteConfig(data) {
             await db.collection('site_config').doc('main').set(data, { merge: true });
         }
+
 
         // --- DASHBOARD LOGIC ---
         async function renderTab(tab) {
@@ -494,8 +486,8 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div><label class="text-xs font-bold text-slate-500 uppercase">Website Name</label><input id="g-brand" class="input-dark mt-1" value="${c.brandName||'easyresults'}"></div>
                                         <div>
-                                            <label class="text-xs font-bold text-slate-500 uppercase">Logo Upload</label>
-                                            <input type="file" id="g-logo" class="input-dark mt-1 text-xs" accept="image/*">
+                                            <label class="text-xs font-bold text-slate-500 uppercase">Logo URL</label>
+                                            <input type="url" id="g-logo" class="input-dark mt-1 text-xs" placeholder="https://..." value="${c.brandLogo||''}">
                                         </div>
                                     </div>
                                     <div><label class="text-xs font-bold text-slate-500 uppercase">Headline</label><textarea id="g-title" class="input-dark mt-1 font-bold text-lg" rows="2">${c.heroTitle||''}</textarea></div>
@@ -580,9 +572,13 @@
                                                     <option value="solar_flare">Solar Flare</option>
                                                     <option value="oceanic_depth">Oceanic Depth</option>
                                                     <option value="slate_minimal">Slate Minimal</option>
+                                                    <option value="sunset_bliss">Sunset Bliss</option>
+                                                    <option value="cyber_neon">Cyber Neon</option>
+                                                    <option value="forest_whisper">Forest Whisper</option>
+                                                    <option value="golden_luxury">Golden Luxury</option>
                                                 </select>
                                             </div>
-                                            <div><label class="text-xs text-slate-500 uppercase font-bold">Logo</label><input type="file" id="c-logo" class="input-dark mt-1 text-xs"></div>
+                                            <div><label class="text-xs text-slate-500 uppercase font-bold">Logo URL</label><input type="url" id="c-logo" class="input-dark mt-1 text-xs" placeholder="https://..."></div>
                                         </div>
                                     </div>
                                 </div>
@@ -637,6 +633,7 @@
                         <td class="p-5"><span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-2 w-fit ${i.isActive!==false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}"><span class="w-1.5 h-1.5 rounded-full ${i.isActive!==false?'bg-emerald-400':'bg-red-400'} animate-pulse"></span>${i.isActive!==false?'Online':'Suspended'}</span></td>
                         <td class="p-5 text-right">
                             <div class="flex items-center justify-end gap-2 opacity-100 lg:opacity-80 group-hover:opacity-100 transition">
+                                <button onclick="sendWhatsAppLink('${i.id}')" class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-white transition" title="Send Link via WhatsApp"><i class="fab fa-whatsapp"></i></button>
                                 <button onclick="loginAs('${i.id}')" class="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition" title="Login As Admin"><i class="fas fa-sign-in-alt"></i></button>
                                 <button onclick="openEditModal('${i.id}')" class="p-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition" title="Edit"><i class="fas fa-edit"></i></button>
                                 <button onclick="copyLink('${i.id}')" class="p-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition" title="Copy Homepage Link"><i class="fas fa-link"></i></button>
@@ -647,6 +644,23 @@
                     </tr>`).join('')}
                 </tbody>
             </table>`;
+        }
+
+        function sendWhatsAppLink(id) {
+            const inst = window.currentInstList.find(x => x.id === id);
+            if (!inst) return showToast("Institution not found", "error");
+            
+            if (!inst.contactPhone) {
+                return showToast("No phone number registered for this institution.", "error");
+            }
+
+            const phone = inst.contactPhone.replace(/\D/g, ''); 
+            
+            const portalUrl = `${window.location.origin}${window.location.pathname.replace('owner.html','')}home.html?id=${id}`;
+            const message = `Hello *${inst.name}*! 👋\n\nYour easyresults portal is now verified and active. You can access your admin dashboard and student portal here:\n\n${portalUrl}\n\nLogin Email: ${inst.email}\n\nWelcome aboard!`;
+            
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
         }
 
         function filterInst() {
@@ -727,6 +741,7 @@
                 f.classList.remove('hidden');
                 $('c-name').value=i.name; $('c-tag').value=i.tagline||'';
                 $('c-theme').value=i.theme||'deep_space';
+                $('c-logo').value=i.profileImage||'';
             }
         }
 
@@ -736,28 +751,19 @@
             const data = {
                 name: $('c-name').value, tagline: $('c-tag').value, theme: $('c-theme').value
             };
-            const logo=$('c-logo').files[0];
-            if(logo) {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    data.profileImage = await uploadImage(`logos/${id}_logo.png`, e.target.result);
-                    await updateDocFunc('institutions', id, data);
-                    showToast("Saved with Logo");
-                    showLoader(false);
-                };
-                reader.readAsDataURL(logo);
-            } else {
-                await updateDocFunc('institutions', id, data);
-                showToast("Branding Updated");
-                showLoader(false);
-            }
+            
+            const logoUrl = $('c-logo').value.trim();
+            if(logoUrl) data.profileImage = logoUrl;
+            
+            await updateDocFunc('institutions', id, data);
+            showToast("Branding Updated");
+            showLoader(false);
         }
 
         async function saveGlobalCMS() {
             const btn = $('btn-save-global');
             btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Saving...`;
             
-            // Failsafe helper for missing fields
             const val = (id) => $(id) ? $(id).value : '';
 
             const config = {
@@ -766,28 +772,14 @@
                 f1Title: val('g-f1-t'), f1Desc: val('g-f1-d'), f2Title: val('g-f2-t'), f2Desc: val('g-f2-d'),
                 f3Title: val('g-f3-t'), f3Desc: val('g-f3-d'), aboutHead: val('g-ab-h'), aboutText: val('g-ab-t'),
             };
+            
+            const logoUrl = $('g-logo').value.trim();
+            if(logoUrl) config.brandLogo = logoUrl;
 
             try {
-                const logoInput = $('g-logo');
-                if(logoInput && logoInput.files.length > 0) {
-                    const r = new FileReader();
-                    r.onload = async (e) => {
-                        try {
-                            config.brandLogo = await uploadImage('site/global_logo.png', e.target.result);
-                            await saveSiteConfig(config);
-                            showToast("Global Site & Logo Published");
-                        } catch(imgErr) {
-                            console.error("Image Upload Failed", imgErr);
-                            showToast("Text saved, but logo upload failed.", "error");
-                        }
-                        btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
-                    };
-                    r.readAsDataURL(logoInput.files[0]);
-                } else {
-                    await saveSiteConfig(config);
-                    showToast("Global Site Content Published");
-                    btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
-                }
+                await saveSiteConfig(config);
+                showToast("Global Site Content Published");
+                btn.innerHTML = `<i class="fas fa-save"></i> Publish Changes`;
             } catch (err) {
                 console.error("CMS Save Error", err);
                 showToast("Failed to save changes", "error");

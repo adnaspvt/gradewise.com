@@ -198,12 +198,23 @@
     </main>
 
     <div id="error-state" class="hidden fixed inset-0 z-[100] bg-dark flex flex-col items-center justify-center text-center p-6">
-        <div class="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-500 text-5xl mb-6 border border-red-500/20 shadow-2xl">
-            <i class="fas fa-ban"></i>
+        <div id="error-icon-container" class="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-500 text-5xl mb-6 border border-red-500/20 shadow-2xl transition-colors duration-500">
+            <i id="error-icon" class="fas fa-ban"></i>
         </div>
-        <h2 class="text-3xl font-bold text-main mb-3">Portal Unavailable</h2>
-        <p class="text-muted mb-8 max-w-md leading-relaxed">This institution's digital portal is currently inactive or the link is incorrect. Please contact the administration.</p>
-        <a href="index.html" class="px-8 py-3 bg-panel hover:bg-dark text-main font-bold rounded-xl transition border-theme">Back to <span class="dynamic-brand-name">GradeWise</span></a>
+        <h2 id="error-title" class="text-3xl font-bold text-main mb-3 transition-colors duration-500">Portal Unavailable</h2>
+        <p class="text-muted mb-6 max-w-md leading-relaxed whitespace-pre-line" id="error-message">This institution's digital portal is currently inactive or the link is incorrect. Please check the URL or enter a valid Account ID below.</p>
+        
+        <div class="w-full max-w-md mb-8 fade-in" style="animation-delay: 0.2s;">
+            <div class="p-1.5 rounded-2xl bg-panel border border-theme flex items-center shadow-xl">
+                <div class="px-4 text-muted"><i class="fas fa-search"></i></div>
+                <input type="text" id="retry-portal-id" placeholder="Enter Account ID manually..." class="bg-transparent border-none text-main w-full outline-none placeholder-slate-500 text-sm" onkeypress="if(event.key === 'Enter') retryPortal()">
+                <button onclick="retryPortal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold transition text-sm flex items-center gap-2 shadow-lg shrink-0">
+                    Find
+                </button>
+            </div>
+        </div>
+
+        <a href="index.html" class="px-8 py-3 bg-panel hover:bg-dark text-main font-bold rounded-xl transition border-theme">Back to <span class="dynamic-brand-name">easyresults</span></a>
     </div>
 
     <script>
@@ -222,13 +233,9 @@
         db.collection('site_config').doc('main').onSnapshot(doc => {
             if(doc.exists) {
                 const brandName = doc.data().brandName || 'easyresults';
-                
-                // Instantly change the Browser Tab Title
                 const currentTitleParts = document.title.split('|');
                 const currentTitle = currentTitleParts[0].trim();
                 document.title = `${currentTitle} | ${brandName}`;
-
-                // Instantly update any text on the screen with the class "dynamic-brand-name"
                 document.querySelectorAll('.dynamic-brand-name').forEach(el => {
                     el.innerText = brandName;
                 });
@@ -249,24 +256,39 @@
             'slate_minimal': { bg: '#0f172a', glass: 'rgba(51, 65, 85, 0.7)', text: '#f8fafc', muted: '#cbd5e1' }
         };
 
-        window.onload = async () => {
+        // Initialize Real-Time Portal Listener
+        window.onload = () => {
             const loader = document.getElementById('page-loader');
-            try {
-                const params = new URLSearchParams(window.location.search);
-                const id = params.get('id');
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
 
-                if (!id) throw new Error("ID Missing");
+            if (!id) {
+                showError("Please check the URL or enter a valid Account ID below.");
+                return;
+            }
 
-                const doc = await db.collection('institutions').doc(id).get();
-                if (!doc.exists) throw new Error("Not Found");
+            // Real-Time Firebase Listener
+            db.collection('institutions').doc(id).onSnapshot(doc => {
+                if (!doc.exists) {
+                    showError("We could not find an institution matching that ID. Please check and try again.");
+                    return;
+                }
 
                 const data = doc.data();
-                if (data.isActive === false) throw new Error("Suspended");
+                
+                // PENDING APPROVAL LOGIC
+                if (data.isActive === false) {
+                    showError("Approval is pending. Contact the owner immediately for approval.\n\n(This page will automatically refresh once approved).", true);
+                    return;
+                }
 
+                // If approved/active, instantly hide the error state and render the portal!
+                document.getElementById('error-state').classList.add('hidden');
+                document.getElementById('page-loader').style.display = 'none'; 
+                
                 document.getElementById('nav-name').innerText = data.name;
                 document.getElementById('hero-name-highlight').innerText = data.name;
                 
-                // Set initial title (the Global Listener will append the brand name to this)
                 document.title = `${data.name} | Portal`;
                 
                 if(data.tagline) document.getElementById('hero-tagline').innerText = data.tagline;
@@ -280,6 +302,7 @@
                 }
 
                 const contactList = document.getElementById('inst-contact-list');
+                contactList.innerHTML = ''; // Prevent duplication on real-time refresh
                 const addContact = (icon, text, href) => {
                     if(!text) return;
                     let content = `<span class="text-muted">${text}</span>`;
@@ -301,20 +324,27 @@
                 };
                 document.getElementById('link-admin').onclick = (e) => {
                     e.preventDefault();
-                    localStorage.setItem('easyresults_last_school', doc.id); // FIXED THIS LINE
+                    localStorage.setItem('easyresults_last_school', doc.id); 
                     window.location.href = `admin.html`; 
                 };
 
-                setTimeout(() => {
-                    loader.classList.add('opacity-0', 'pointer-events-none');
-                    document.getElementById('main-content').classList.remove('hidden');
-                }, 400);
+                // Show main content gracefully
+                document.getElementById('main-content').classList.remove('hidden');
 
-            } catch (e) {
-                console.error(e);
-                showError("System Data Error");
-            }
+            }, err => {
+                console.error(err);
+                showError("System Data Error. Please check your connection.");
+            });
         };
+
+        function retryPortal() {
+            const id = document.getElementById('retry-portal-id').value.trim();
+            if(id) {
+                window.location.href = `home.html?id=${id}`;
+            } else {
+                alert("Please enter a valid Institution Account ID.");
+            }
+        }
 
         function applyTheme(inst) {
             const color = inst.themeColor || '#6366f1';
@@ -337,11 +367,25 @@
             }
         }
 
-        function showError(msg) {
+        // Dynamic Error / Pending State Renderer
+        function showError(msg, isPending = false) {
             document.getElementById('page-loader').style.display = 'none';
-            const err = document.getElementById('error-state');
-            err.classList.remove('hidden');
-            err.querySelector('p').innerText = msg;
+            document.getElementById('main-content').classList.add('hidden');
+            
+            const errState = document.getElementById('error-state');
+            errState.classList.remove('hidden');
+            
+            if (msg) document.getElementById('error-message').innerText = msg;
+            
+            if (isPending) {
+                document.getElementById('error-title').innerText = "Approval Pending";
+                document.getElementById('error-icon').className = "fas fa-clock fa-spin";
+                document.getElementById('error-icon-container').className = "w-24 h-24 bg-yellow-500/10 rounded-3xl flex items-center justify-center text-yellow-500 text-5xl mb-6 border border-yellow-500/20 shadow-2xl transition-colors duration-500";
+            } else {
+                document.getElementById('error-title').innerText = "Portal Unavailable";
+                document.getElementById('error-icon').className = "fas fa-ban";
+                document.getElementById('error-icon-container').className = "w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-500 text-5xl mb-6 border border-red-500/20 shadow-2xl transition-colors duration-500";
+            }
         }
     </script>
 </body>

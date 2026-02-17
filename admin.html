@@ -14,8 +14,6 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <style>
         :root {
@@ -284,7 +282,6 @@
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const storage = firebase.storage();
 
         // --- GLOBAL BRANDING LISTENER ---
         db.collection('site_config').doc('main').onSnapshot(doc => {
@@ -356,13 +353,6 @@
                 if(i === sorted.length - 1) return `${row.g} (<${sorted[i-1].m}%)`;
                 return `${row.g} (${row.m}-${sorted[i-1].m - 1}%)`;
             }).join(' | ');
-        }
-
-        async function uploadImage(path, dataUrl) {
-            if(!dataUrl || !dataUrl.startsWith('data:')) return null;
-            const ref = storage.ref().child(path);
-            await ref.putString(dataUrl, 'data_url');
-            return await ref.getDownloadURL();
         }
 
         function toggleSidebar() { 
@@ -623,7 +613,7 @@
                         const d = e.publishDate ? new Date(e.publishDate).toLocaleString() : 'Immediate';
                         const isPub = e.isPublished || false;
                         return `
-                        <div class="glass-panel p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 group">
+                        <div class="glass-panel p-3 md:p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 group">
                             <div>
                                 <span class="font-bold block text-main">${e.name}</span>
                                 <span class="text-[10px] text-muted font-mono"><i class="fas fa-clock mr-1"></i> Scheduled: ${d}</span>
@@ -727,8 +717,8 @@
                                 <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Email</label><input id="set-email" class="input-field mt-1" value="${i.contactEmail||''}"></div>
                                 <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Phone</label><input id="set-phone" class="input-field mt-1" value="${i.contactPhone||''}"></div>
                                 <div class="sm:col-span-2"><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Address</label><input id="set-addr" class="input-field mt-1" value="${i.address||''}"></div>
-                                <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">School Logo</label><input type="file" id="set-logo" class="input-field mt-1 text-xs"></div>
-                                <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Principal Signature</label><input type="file" id="set-sig" class="input-field mt-1 text-xs"></div>
+                                <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">School Logo URL</label><input type="url" id="set-logo" class="input-field mt-1 text-sm" value="${i.profileImage||''}" placeholder="https://..."></div>
+                                <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Principal Signature URL</label><input type="url" id="set-sig" class="input-field mt-1 text-sm" value="${i.signatureImage||''}" placeholder="https://..."></div>
                             </div>
                         </div>
                         <button onclick="saveSettings()" class="w-full btn-primary py-4 rounded-xl shadow-lg">Save & Update Profile</button>
@@ -1351,7 +1341,6 @@
         async function saveSettings() {
             showLoader(true);
             
-            // Clean up custom grade scale before saving
             draftGradeScale.sort((a, b) => b.m - a.m);
 
             const data = {
@@ -1360,10 +1349,11 @@
                 themeColor: $('set-color').value, theme: $('set-theme').value, 
                 gradeScale: $('set-grade-scale').value, customGradeScale: draftGradeScale
             };
-            const logo = $('set-logo').files[0];
-            const sig = $('set-sig').files[0];
-            if(logo) data.profileImage = await uploadImage(`logos/${currentUser.id}_logo`, await readFile(logo));
-            if(sig) data.signatureImage = await uploadImage(`logos/${currentUser.id}_sig`, await readFile(sig));
+            
+            const logoUrl = $('set-logo').value.trim();
+            const sigUrl = $('set-sig').value.trim();
+            if(logoUrl) data.profileImage = logoUrl;
+            if(sigUrl) data.signatureImage = sigUrl;
             
             await db.collection('institutions').doc(currentUser.id).update(data);
             
@@ -1374,8 +1364,6 @@
             showLoader(false); 
             showToast("Profile Updated");
         }
-
-        const readFile = (file) => new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
     </script>
 </body>
 </html>

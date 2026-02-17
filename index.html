@@ -44,6 +44,8 @@
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); transition: all 0.2s;
         }
         .btn-glow:hover { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); transform: scale(1.02); }
+
+        select option { background-color: #0f172a; color: #fff; }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -68,6 +70,9 @@
                 <a href="#features" class="hover:text-white transition">Features</a>
                 <a href="#about" class="hover:text-white transition">About</a>
                 <a href="#register" class="hover:text-white transition">Register</a>
+                <a href="guide.html" class="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 hover:text-blue-300 transition font-bold border border-blue-500/20">
+                    <i class="fas fa-book-open"></i> User Guide
+                </a>
             </div>
         </div>
     </nav>
@@ -94,7 +99,7 @@
                 Register Institution <i class="fas fa-arrow-right"></i>
             </a>
             <a id="wa-link" href="#" target="_blank" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
-                <i class="fab fa-whatsapp text-green-400 text-lg"></i> More Info
+                <i class="fab fa-whatsapp text-green-400 text-lg"></i> Contact Sales
             </a>
         </div>
 
@@ -213,8 +218,18 @@
                             <input type="email" id="req-email" class="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white mt-2 outline-none transition" required placeholder="admin@school.com">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</label>
-                            <input type="tel" id="req-phone" class="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white mt-2 outline-none transition" required placeholder="+1 234 567 8900">
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Mobile Number</label>
+                            <div class="flex mt-2">
+                                <select id="req-country-code" class="bg-slate-800/50 border border-slate-700 border-r-0 focus:border-blue-500 rounded-l-xl px-2 py-3 text-white outline-none transition w-[40%] sm:w-[35%] text-xs sm:text-sm cursor-pointer">
+                                    <option value="+91">+91 (IN)</option>
+                                    <option value="+1">+1 (US/CA)</option>
+                                    <option value="+44">+44 (UK)</option>
+                                    <option value="+971">+971 (UAE)</option>
+                                    <option value="+966">+966 (SA)</option>
+                                    <option value="+61">+61 (AU)</option>
+                                </select>
+                                <input type="tel" id="req-phone" class="w-full bg-slate-800/50 border border-slate-700 focus:border-blue-500 rounded-r-xl px-3 py-3 text-white outline-none transition" required placeholder="Phone Number">
+                            </div>
                         </div>
                         <div class="md:col-span-2">
                             <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Admin Password</label>
@@ -239,7 +254,6 @@
     </footer>
 
     <script>
-        // 1. Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBDluJn6c-9vr3jJUEIl3FJ2l4HD4W1M2k",
             authDomain: "gradewise-app.firebaseapp.com",
@@ -251,19 +265,16 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Keep track of the configured WhatsApp Number globally
         let globalWhatsappNumber = "";
 
         window.onload = async function() {
             try {
-                // Fetch CMS Data & Live Stats from Cloud
                 const docSnap = await db.collection('site_config').doc('main').get();
                 const c = docSnap.exists ? docSnap.data() : {};
                 
                 const instSnap = await db.collection('institutions').get();
                 const stuSnap = await db.collection('students').get();
 
-                // Apply Branding
                 if(c.brandName) {
                     document.title = c.brandName + " | Digital School Solutions";
                     document.getElementById('cms-brand-name').innerText = c.brandName;
@@ -275,12 +286,10 @@
                     document.getElementById('nav-icon').classList.add('hidden');
                 }
 
-                // Apply CMS Content
                 if(c.heroTitle) document.getElementById('hero-title').innerHTML = c.heroTitle.replace(/\n/g, "<br>");
                 if(c.heroSub) document.getElementById('hero-sub').innerText = c.heroSub;
                 if(c.heroBtn) document.getElementById('hero-btn').innerHTML = `${c.heroBtn} <i class="fas fa-arrow-right ml-2"></i>`;
                 
-                // Store WhatsApp Number & Update existing link
                 if(c.whatsapp) {
                     globalWhatsappNumber = c.whatsapp;
                     const url = `https://wa.me/${c.whatsapp}`;
@@ -299,7 +308,6 @@
                 if(c.stat1Label) document.getElementById('stat-1-lbl').innerText = c.stat1Label;
                 if(c.stat2Label) document.getElementById('stat-2-lbl').innerText = c.stat2Label;
                 
-                // Inject Live Analytics
                 document.getElementById('stat-1-val').innerText = instSnap.size + '+'; 
                 document.getElementById('stat-2-val').innerText = stuSnap.size + '+';
 
@@ -310,7 +318,6 @@
             }
         };
 
-        // NEW: Navigate to Portal directly via ID
         function goToPortal() {
             const id = document.getElementById('quick-portal-id').value.trim();
             if(id) {
@@ -320,7 +327,6 @@
             }
         }
 
-        // Handle LIVE Registration Form Submission
         async function submitRegistration(e) {
             e.preventDefault();
             
@@ -333,12 +339,22 @@
             const school = document.getElementById('req-school').value;
             const name = document.getElementById('req-name').value;
             const email = document.getElementById('req-email').value;
-            const phone = document.getElementById('req-phone').value;
+            const countryCode = document.getElementById('req-country-code').value;
+            const rawPhone = document.getElementById('req-phone').value;
+            const phone = countryCode + " " + rawPhone;
             const pass = document.getElementById('req-pass').value;
 
             try {
-                // 1. Create the Institution directly in the database (Suspended status by default)
-                // This precisely mirrors the data structure created inside owner.html
+                // 1. DUPLICATE EMAIL CHECK
+                const existingInst = await db.collection('institutions').where('email', '==', email).get();
+                if (!existingInst.empty) {
+                    alert("This email is already registered. Contact the easyresults team and ask for your institution ID to get the webpage.");
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // 2. Create the Institution directly in the database
                 const docRef = await db.collection('institutions').add({
                     name: school,
                     email: email,
@@ -352,19 +368,17 @@
                     createdAt: new Date().toISOString()
                 });
 
-                // 2. Open WhatsApp link to send message directly to Owner (if configured)
+                // 3. Open WhatsApp link to send message directly to Owner
                 if (globalWhatsappNumber) {
                     const text = `*New Institution Registration*%0A%0A*School Name:* ${school}%0A*Admin Email:* ${email}%0A*Contact:* ${name} (${phone})%0A%0AHello, I have just registered my institution on easyresults. My designated Account ID is: *${docRef.id}*. Please approve my account to activate the portal.`;
                     const waUrl = `https://wa.me/${globalWhatsappNumber}?text=${text}`;
                     
-                    // Open WhatsApp in a new tab
                     window.open(waUrl, '_blank');
                 } else {
                     alert("Registration successful! (Note: The system owner has not configured a WhatsApp number yet, so the automatic message could not be sent).");
                 }
 
-                // 3. Redirect their current window to their newly created portal
-                // It will show as "Unavailable/Suspended" until the owner toggles it online
+                // 4. Redirect their current window to their newly created portal
                 window.location.href = `home.html?id=${docRef.id}`;
 
             } catch(err) {
