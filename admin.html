@@ -59,13 +59,21 @@
         .btn-secondary { background: rgba(125,125,125,0.1); color: var(--text-main); border: 1px solid var(--border); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .btn-secondary:hover { background: rgba(125,125,125,0.2); border-color: var(--primary); }
 
-        /* Desktop Nav */
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 6px; border-radius: 10px; color: var(--text-muted); transition: all 0.2s; cursor: pointer; font-weight: 500; border: 1px solid transparent; }
+        /* Desktop Nav & Collapse Logic */
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 6px; border-radius: 10px; color: var(--text-muted); transition: all 0.2s; cursor: pointer; font-weight: 500; border: 1px solid transparent; overflow: hidden; white-space: nowrap; }
         .nav-item:hover { background: rgba(125,125,125,0.1); color: var(--text-main); }
         .nav-item.active { background: var(--primary-glow); color: var(--text-main); border-color: var(--primary); }
+        
+        @media (min-width: 1025px) {
+            .sidebar.collapsed { width: 5.5rem; }
+            .sidebar.collapsed .sidebar-text, .sidebar.collapsed .sidebar-header-text { display: none; }
+            .sidebar.collapsed .nav-item { justify-content: center; padding: 12px 0; }
+            .sidebar.collapsed .nav-item i { margin-right: 0; font-size: 1.25rem; }
+            .sidebar.collapsed .sidebar-logo-container { width: 40px; height: 40px; margin: 0 auto; }
+        }
 
         .me-container { border: 1px solid var(--border); border-radius: 16px; background: var(--bg-panel); backdrop-filter: blur(20px); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .me-table th { text-transform: uppercase; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text-muted); padding: 1.25rem 1rem; border-bottom: 2px solid var(--border); background: rgba(0,0,0,0.3); cursor: pointer; user-select: none; }
+        .me-table th { text-transform: uppercase; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text-muted); padding: 1.25rem 1rem; border-bottom: 2px solid var(--border); background: rgba(0,0,0,0.3); cursor: pointer; user-select: none; white-space: nowrap; }
         .me-table th:hover { color: var(--text-main); background: rgba(125,125,125,0.1); }
         .me-table td { border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; position: relative; vertical-align: middle; }
         
@@ -109,20 +117,18 @@
         .stamp-status { padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; font-weight: 800; text-transform: uppercase; display: inline-block; font-size: 0.85rem; }
         .pass { color: #059669; border-color: #059669; background: #ecfdf5; } .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
 
-        /* --- MOBILE APP UI OPTIMIZATIONS --- */
-        @media (max-width: 768px) {
+        /* --- MOBILE & TABLET APP UI OPTIMIZATIONS --- */
+        @media (max-width: 1024px) {
             .sidebar { position: fixed; transform: translateX(-100%); height: 100%; z-index: 50; width: 280px; transition: transform 0.3s; }
             .sidebar.open { transform: translateX(0); }
             .overlay { display: none; }
             .overlay.open { display: block; }
             
-            #content-area { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); } /* Space for bottom nav */
+            #content-area { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
             
-            /* Bottom App Nav Styles */
             .mobile-nav-item.active { color: var(--primary); }
             .mobile-nav-item.active i { transform: translateY(-3px) scale(1.15); filter: drop-shadow(0 4px 6px var(--primary-glow)); color: var(--primary); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 
-            /* Transforms Command Bar */
             .command-bar { min-width: 90%; flex-wrap: wrap; justify-content: center; gap: 1rem; bottom: 5rem; border-radius: 16px; padding: 0.8rem; z-index: 40; }
             .stat-group { align-items: center; }
             .a4-container { transform: scale(0.42); margin-top: -20%; margin-bottom: -35%; }
@@ -148,7 +154,7 @@
     <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
     <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center bg-dark hidden p-4">
-        <div class="glass-panel p-8 md:p-10 rounded-2xl shadow-2xl w-full max-w-sm relative z-10 border-theme">
+        <div class="glass-panel p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-sm relative z-10 border-theme">
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-panel rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 border-theme shadow-lg text-main">
                     <i class="fas fa-shield-alt"></i>
@@ -168,56 +174,61 @@
     <div id="view-dashboard" class="hidden w-full h-full flex bg-dark">
         <div id="mobile-overlay" onclick="toggleSidebar()" class="overlay fixed inset-0 bg-black/50 z-30 hidden backdrop-blur-sm"></div>
 
-        <aside id="main-sidebar" class="sidebar w-72 bg-panel border-r border-theme flex flex-col flex-shrink-0 z-40 relative transition-transform duration-300 backdrop-blur-md">
-            <div class="p-8 border-b border-theme flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-dark font-bold border border-white/10 overflow-hidden shadow-lg relative" style="background-color: var(--primary);">
+        <aside id="main-sidebar" class="sidebar w-72 bg-panel border-r border-theme flex flex-col flex-shrink-0 z-40 relative transition-all duration-300 backdrop-blur-md">
+            <div class="p-6 lg:p-8 border-b border-theme flex items-center gap-4 sidebar-header">
+                <div class="sidebar-logo-container w-10 h-10 rounded-xl flex items-center justify-center text-white bg-dark font-bold border border-white/10 overflow-hidden shadow-lg relative flex-shrink-0 transition-all" style="background-color: var(--primary);">
                     <img id="sidebar-logo" class="w-full h-full object-cover hidden">
                     <i id="sidebar-icon" class="fas fa-university text-lg"></i>
                 </div>
-                <div class="overflow-hidden">
+                <div class="overflow-hidden sidebar-header-text">
                     <h2 class="font-bold text-main text-sm leading-tight truncate w-32" id="sidebar-inst-name">Loading...</h2>
                     <span class="text-[10px] text-muted font-mono uppercase tracking-wider font-bold">Administrator</span>
                 </div>
             </div>
-            <nav class="flex-1 p-5 space-y-2 overflow-y-auto">
-                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-2 px-3">Management</div>
-                <div onclick="renderTab('overview')" class="nav-item active"><i class="fas fa-chart-line w-5 text-center"></i> Overview</div>
-                <div onclick="renderTab('classes')" class="nav-item"><i class="fas fa-chalkboard w-5 text-center"></i> Classes</div>
-                <div onclick="renderTab('students')" class="nav-item"><i class="fas fa-user-graduate w-5 text-center"></i> Students</div>
-                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-2 px-3 mt-6">Academics</div>
-                <div onclick="renderTab('exams')" class="nav-item"><i class="fas fa-clock w-5 text-center"></i> Exams</div>
-                <div onclick="renderTab('publish')" class="nav-item"><i class="fas fa-edit w-5 text-center"></i> Result Entry</div>
-                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-2 px-3 mt-6">System</div>
-                <div onclick="renderTab('settings')" class="nav-item"><i class="fas fa-cog w-5 text-center"></i> School Profile</div>
+            <nav class="flex-1 p-4 lg:p-5 space-y-2 overflow-y-auto overflow-x-hidden">
+                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-2 px-3 sidebar-text">Management</div>
+                <div onclick="renderTab('overview')" class="nav-item active"><i class="fas fa-chart-line w-5 text-center shrink-0"></i> <span class="sidebar-text">Overview</span></div>
+                <div onclick="renderTab('classes')" class="nav-item"><i class="fas fa-chalkboard w-5 text-center shrink-0"></i> <span class="sidebar-text">Classes</span></div>
+                <div onclick="renderTab('students')" class="nav-item"><i class="fas fa-user-graduate w-5 text-center shrink-0"></i> <span class="sidebar-text">Students</span></div>
+                
+                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-2 px-3 mt-6 sidebar-text">Academics</div>
+                <div onclick="renderTab('exams')" class="nav-item"><i class="fas fa-clock w-5 text-center shrink-0"></i> <span class="sidebar-text">Exams</span></div>
+                <div onclick="renderTab('publish')" class="nav-item"><i class="fas fa-edit w-5 text-center shrink-0"></i> <span class="sidebar-text">Result Entry</span></div>
+                
+                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-2 px-3 mt-6 sidebar-text">System</div>
+                <div onclick="renderTab('settings')" class="nav-item"><i class="fas fa-cog w-5 text-center shrink-0"></i> <span class="sidebar-text">School Profile</span></div>
             </nav>
-            <div class="p-5 border-t border-theme bg-panel md:block">
-                <button onclick="logout()" class="w-full py-2.5 text-red-500 text-xs font-bold hover:bg-red-500/10 rounded-xl transition border border-red-500/20 flex items-center justify-center gap-2"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+            <div class="p-4 lg:p-5 border-t border-theme bg-panel hidden lg:block">
+                <button onclick="logout()" class="w-full py-2.5 text-red-500 text-xs font-bold hover:bg-red-500/10 rounded-xl transition border border-red-500/20 flex items-center justify-center gap-2 overflow-hidden"><i class="fas fa-sign-out-alt shrink-0"></i> <span class="sidebar-text">Sign Out</span></button>
             </div>
         </aside>
 
         <main class="flex-1 flex flex-col min-w-0 relative h-full">
             
-            <header class="h-16 md:h-20 border-b border-theme bg-panel backdrop-blur-md flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 transition-colors duration-500">
+            <header class="h-16 lg:h-20 border-b border-theme bg-panel backdrop-blur-md flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30 transition-colors duration-500">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-dark flex items-center justify-center md:hidden overflow-hidden border border-theme shadow-sm">
+                    <button onclick="toggleSidebar()" class="lg:hidden text-muted hover:text-main"><i class="fas fa-bars text-xl"></i></button>
+                    <button onclick="toggleDesktopSidebar()" class="hidden lg:block text-muted hover:text-main mr-2 transition-transform" id="desktop-sidebar-toggle"><i class="fas fa-outdent text-xl"></i></button>
+                    
+                    <div class="w-9 h-9 rounded-lg bg-dark flex items-center justify-center lg:hidden overflow-hidden border border-theme shadow-sm">
                         <img id="mobile-header-logo-admin" class="w-full h-full object-cover hidden">
                         <i id="mobile-header-icon-admin" class="fas fa-university text-xs" style="color: var(--primary)"></i>
                     </div>
-                    <div class="md:hidden flex flex-col justify-center">
+                    <div class="lg:hidden flex flex-col justify-center">
                         <h2 id="mobile-header-school-admin" class="text-xs font-extrabold text-main leading-tight truncate max-w-[150px]">Loading...</h2>
                         <p class="text-[10px] text-muted truncate max-w-[150px] font-mono">Admin Console</p>
                     </div>
-                    <h2 id="page-title" class="text-xl font-bold tracking-tight text-main hidden md:block">Overview</h2>
+                    <h2 id="page-title" class="text-xl font-bold tracking-tight text-main hidden sm:block">Overview</h2>
                 </div>
                 <div class="flex items-center gap-3">
                     <button onclick="viewPublicPage()" class="px-3 py-1.5 md:px-4 md:py-2 bg-dark hover:bg-panel text-muted rounded-lg border border-theme transition text-xs font-bold flex items-center gap-2 hover:text-main"><span class="hidden md:inline">Homepage</span> <i class="fas fa-external-link-alt"></i></button>
                 </div>
             </header>
 
-            <div id="content-area" class="flex-1 overflow-y-auto p-3 md:p-8 pb-24 md:pb-32 w-full scroll-smooth"></div>
+            <div id="content-area" class="flex-1 overflow-y-auto p-4 lg:p-10 pb-24 lg:pb-32 w-full scroll-smooth"></div>
         </main>
         
-        <nav class="md:hidden fixed bottom-0 w-full bg-panel backdrop-blur-2xl border-t border-theme flex justify-around items-center z-50 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+        <nav class="lg:hidden fixed bottom-0 w-full bg-panel backdrop-blur-2xl border-t border-theme flex justify-around items-center z-50 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
             <button onclick="renderTab('overview')" class="mobile-nav-item active flex flex-col items-center p-3 flex-1 text-muted transition-all duration-300">
                 <i class="fas fa-chart-pie text-[1.1rem] mb-1"></i>
                 <span class="text-[9px] font-bold uppercase tracking-wider">Home</span>
@@ -241,7 +252,7 @@
         <div class="glass-panel w-full max-w-4xl rounded-2xl overflow-hidden relative border-t border-theme my-auto" id="modal-content-wrapper">
             <div class="p-4 md:p-6 border-b border-theme flex justify-between items-center bg-panel">
                 <h3 class="text-lg font-bold text-main" id="modal-title">Edit</h3>
-                <button onclick="closeModal()" class="text-muted hover:text-main transition"><i class="fas fa-times text-xl"></i></button>
+                <button onclick="closeModal()" class="text-muted hover:text-main transition p-2"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div id="modal-body" class="p-4 md:p-6 bg-dark max-h-[80vh] overflow-y-auto"></div>
         </div>
@@ -360,6 +371,19 @@
             $('mobile-overlay').classList.toggle('open');
         }
 
+        function toggleDesktopSidebar() {
+            const sb = $('main-sidebar');
+            const icon = document.querySelector('#desktop-sidebar-toggle i');
+            sb.classList.toggle('collapsed');
+            if(sb.classList.contains('collapsed')) {
+                icon.classList.remove('fa-outdent');
+                icon.classList.add('fa-indent');
+            } else {
+                icon.classList.remove('fa-indent');
+                icon.classList.add('fa-outdent');
+            }
+        }
+
         function applyTheme(inst) {
             const color = inst.themeColor || '#6366f1';
             const themeKey = inst.theme || 'deep_space';
@@ -475,7 +499,7 @@
             document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
                 if(el.getAttribute('onclick')) el.classList.toggle('active', el.getAttribute('onclick').includes(tab));
             });
-            if(window.innerWidth < 768) { 
+            if(window.innerWidth < 1024) { 
                 $('main-sidebar').classList.remove('open'); 
                 $('mobile-overlay').classList.add('hidden'); 
                 $('mobile-overlay').classList.remove('open'); 
@@ -492,12 +516,12 @@
                 const eCount = localState.exams.length;
 
                 content.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8 fade-in">
-                        <div class="glass-panel p-4 md:p-6 rounded-2xl border-l-4 border-l-blue-500"><p class="text-[10px] md:text-xs font-bold uppercase text-muted">Total Students</p><h3 class="text-2xl md:text-3xl font-bold mt-2 text-main">${sCount}</h3></div>
-                        <div class="glass-panel p-4 md:p-6 rounded-2xl border-l-4 border-l-purple-500"><p class="text-[10px] md:text-xs font-bold uppercase text-muted">Active Classes</p><h3 class="text-2xl md:text-3xl font-bold mt-2 text-main">${cCount}</h3></div>
-                        <div class="glass-panel p-4 md:p-6 rounded-2xl border-l-4 border-l-emerald-500"><p class="text-[10px] md:text-xs font-bold uppercase text-muted">Exams Conducted</p><h3 class="text-2xl md:text-3xl font-bold mt-2 text-main">${eCount}</h3></div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8 fade-in">
+                        <div class="glass-panel p-5 md:p-6 rounded-2xl border-l-4 border-l-blue-500"><p class="text-[10px] md:text-xs font-bold uppercase text-muted">Total Students</p><h3 class="text-2xl md:text-3xl font-bold mt-2 text-main">${sCount}</h3></div>
+                        <div class="glass-panel p-5 md:p-6 rounded-2xl border-l-4 border-l-purple-500"><p class="text-[10px] md:text-xs font-bold uppercase text-muted">Active Classes</p><h3 class="text-2xl md:text-3xl font-bold mt-2 text-main">${cCount}</h3></div>
+                        <div class="glass-panel p-5 md:p-6 rounded-2xl border-l-4 border-l-emerald-500"><p class="text-[10px] md:text-xs font-bold uppercase text-muted">Exams Conducted</p><h3 class="text-2xl md:text-3xl font-bold mt-2 text-main">${eCount}</h3></div>
                     </div>
-                    <div class="glass-panel p-4 md:p-8 rounded-2xl fade-in"><h4 class="text-sm md:text-lg font-bold mb-4 md:mb-6 text-main">Student Distribution</h4><div class="h-48 md:h-64"><canvas id="mainChart"></canvas></div></div>`;
+                    <div class="glass-panel p-5 lg:p-8 rounded-2xl fade-in w-full"><h4 class="text-sm md:text-lg font-bold mb-4 md:mb-6 text-main">Student Distribution</h4><div class="h-48 md:h-64"><canvas id="mainChart"></canvas></div></div>`;
                 
                 if(activeChart) activeChart.destroy();
                 const ctx = $('mainChart').getContext('2d');
@@ -519,17 +543,17 @@
                         <input id="new-class" class="input-field" placeholder="Class Name (e.g. Grade 10-A)">
                         <button onclick="addClass()" class="btn-primary flex-shrink-0">Add Class</button>
                     </div>
-                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 fade-in">${localState.classes.map(c => `
-                        <div class="glass-panel p-4 md:p-6 rounded-2xl group relative transition">
+                    <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 fade-in">${localState.classes.map(c => `
+                        <div class="glass-panel p-5 md:p-6 rounded-2xl group relative transition">
                             <div class="flex justify-between items-start mb-4">
                                 <h3 class="text-base md:text-lg font-bold text-main">${c.name}</h3>
                                 <div class="flex gap-2">
-                                    <button onclick="editItem('classes','${c.id}')" class="text-muted hover:text-blue-400 transition"><i class="fas fa-edit"></i></button>
-                                    <button onclick="deleteItem('classes','${c.id}')" class="text-muted hover:text-red-400 transition"><i class="fas fa-trash"></i></button>
+                                    <button onclick="editItem('classes','${c.id}')" class="text-muted hover:text-blue-400 transition p-2"><i class="fas fa-edit"></i></button>
+                                    <button onclick="deleteItem('classes','${c.id}')" class="text-muted hover:text-red-400 transition p-2"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                             <button onclick="manageSubjects('${c.id}')" class="w-full py-2 bg-dark hover:bg-panel rounded-lg text-xs font-bold text-main transition border-theme">Manage ${localState.subjects.filter(s=>s.classId===c.id).length} Subjects</button>
-                        </div>`).join('') || '<div class="text-muted p-4 col-span-3 text-center">No classes found. Add one above.</div>'}
+                        </div>`).join('') || '<div class="text-muted p-4 col-span-full text-center">No classes found. Add one above.</div>'}
                     </div>`;
             }
 
@@ -539,59 +563,44 @@
                 const opts = localState.classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
                 
                 content.innerHTML = `
-                    <div class="grid lg:grid-cols-3 gap-4 md:gap-6 mb-6 fade-in min-h-[calc(100vh-180px)]">
-                        <div class="glass-panel p-4 md:p-6 rounded-2xl lg:col-span-1 h-fit">
-                            <h4 class="font-bold mb-4 border-b border-theme pb-2 text-main">Register Student</h4>
-                            <div class="space-y-3">
-                                <input id="s-name" class="input-field text-sm" placeholder="Full Name">
-                                <input id="s-adm" class="input-field text-sm" placeholder="Admission No (Unique)">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <input id="s-dob" type="date" class="input-field text-muted text-sm">
-                                    <select id="s-class" class="input-field text-muted text-sm"><option value="">Class...</option>${opts}</select>
-                                </div>
-                                <div class="mt-4 pt-4 border-t border-theme">
-                                    <h4 class="font-bold mb-3 text-[10px] uppercase tracking-wider text-muted">Guardian Details</h4>
-                                    <input id="s-parent" class="input-field mb-2 text-sm" placeholder="Parent / Guardian Name">
-                                    <input id="s-phone" class="input-field mb-2 text-sm" placeholder="Mobile Number">
-                                    <input id="s-address" class="input-field text-sm" placeholder="Home Address">
-                                </div>
-                                <button onclick="addStudent()" class="w-full btn-primary mt-2">Register Student</button>
+                    <div class="glass-panel p-4 lg:p-6 rounded-2xl mb-6 fade-in flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            <button onclick="openRegisterModal()" class="btn-primary w-full sm:w-auto"><i class="fas fa-plus"></i> Register Student</button>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button onclick="downloadStudentTemplate()" class="btn-secondary flex-1 sm:w-auto text-xs"><i class="fas fa-download mr-1"></i> Template</button>
+                                <button onclick="exportStudents()" class="btn-secondary flex-1 sm:w-auto text-xs"><i class="fas fa-file-export mr-1"></i> Export</button>
                             </div>
-                            <div class="mt-6 pt-6 border-t border-theme">
-                                <h4 class="font-bold mb-2 text-xs uppercase tracking-wider text-main">Bulk Actions</h4>
-                                <div class="space-y-2">
-                                    <div class="flex gap-2 flex-col xl:flex-row">
-                                        <button onclick="downloadStudentTemplate()" class="flex-1 btn-secondary text-xs w-full"><i class="fas fa-download mr-1"></i> Template</button>
-                                        <button onclick="exportStudents()" class="flex-1 btn-secondary text-xs w-full"><i class="fas fa-file-export mr-1"></i> Export</button>
-                                    </div>
-                                    <div class="relative">
-                                        <input type="file" id="s-file" class="hidden" accept=".xlsx,.csv" onchange="bulkImport()">
-                                        <button onclick="$('s-file').click()" class="w-full py-2 bg-dark hover:bg-panel text-main rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 border border-theme"><i class="fas fa-file-import"></i> Upload Excel Data</button>
-                                    </div>
-                                </div>
+                            <div class="w-full sm:w-auto">
+                                <input type="file" id="s-file" class="hidden" accept=".xlsx,.csv" onchange="bulkImport()">
+                                <button onclick="$('s-file').click()" class="btn-secondary w-full sm:w-auto text-xs"><i class="fas fa-upload mr-1"></i> Import Excel</button>
                             </div>
                         </div>
-                        <div class="glass-panel rounded-2xl lg:col-span-2 overflow-hidden flex flex-col h-[500px] lg:h-auto">
-                            <div class="p-3 md:p-4 border-b border-theme bg-panel flex flex-col sm:flex-row flex-wrap gap-2 items-center">
-                                <input id="s-search" onkeyup="renderStudentList()" class="input-field bg-transparent flex-1 min-w-[150px] w-full sm:w-auto" placeholder="Search students...">
-                                <div class="flex gap-2 w-full sm:w-auto">
-                                    <select id="s-filter-class" onchange="renderStudentList()" class="input-field w-1/2 sm:w-auto text-xs py-2"><option value="">All Classes</option>${opts}</select>
-                                    <select id="s-sort" onchange="renderStudentList()" class="input-field w-1/2 sm:w-auto text-xs py-2">
-                                        <option value="name_asc">Name (A-Z)</option>
-                                        <option value="name_desc">Name (Z-A)</option>
-                                        <option value="adm_asc">Adm No (Asc)</option>
-                                        <option value="adm_desc">Adm No (Desc)</option>
-                                    </select>
-                                </div>
-                                <button onclick="openPromoteModal()" id="btn-promote" class="hidden w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition">Promote</button>
+                    </div>
+                    
+                    <div class="glass-panel rounded-2xl overflow-hidden flex flex-col min-h-[500px] fade-in shadow-xl">
+                        <div class="p-3 lg:p-4 border-b border-theme bg-panel flex flex-col md:flex-row gap-3 items-center justify-between">
+                            <div class="flex items-center gap-3 w-full md:w-auto flex-1">
+                                <i class="fas fa-search text-muted pl-2"></i>
+                                <input id="s-search" onkeyup="renderStudentList()" class="input-field bg-transparent border-none shadow-none focus:ring-0 p-0 w-full" placeholder="Search name, adm no, or parent...">
                             </div>
-                            <div class="px-4 md:px-6 py-2 bg-panel text-[10px] uppercase font-bold text-muted flex items-center gap-3 border-b border-theme">
-                                <input type="checkbox" id="check-all" class="rounded bg-dark border-theme" onchange="toggleSelectAll(this)"> 
-                                <span>Select All</span>
+                            <div class="flex gap-2 w-full md:w-auto">
+                                <select id="s-filter-class" onchange="renderStudentList()" class="input-field w-1/2 sm:w-auto text-xs py-2"><option value="">All Classes</option>${opts}</select>
+                                <select id="s-sort" onchange="renderStudentList()" class="input-field w-1/2 sm:w-auto text-xs py-2">
+                                    <option value="name_asc">Name (A-Z)</option>
+                                    <option value="name_desc">Name (Z-A)</option>
+                                    <option value="adm_asc">Adm No (Asc)</option>
+                                    <option value="adm_desc">Adm No (Desc)</option>
+                                </select>
                             </div>
-                            <div class="flex-1 overflow-y-auto p-0" id="student-list"></div>
+                            <button onclick="openPromoteModal()" id="btn-promote" class="hidden w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition">Promote</button>
                         </div>
-                    </div>`;
+                        <div class="px-4 lg:px-6 py-2.5 bg-dark text-[10px] uppercase font-bold text-muted flex items-center gap-3 border-b border-theme">
+                            <input type="checkbox" id="check-all" class="rounded bg-dark border-theme" onchange="toggleSelectAll(this)"> 
+                            <span>Select All</span>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-0 bg-panel/30" id="student-list"></div>
+                    </div>
+                `;
                 renderStudentList();
             }
 
@@ -614,7 +623,7 @@
                         const d = e.publishDate ? new Date(e.publishDate).toLocaleString() : 'Immediate';
                         const isPub = e.isPublished || false;
                         return `
-                        <div class="glass-panel p-3 md:p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 group">
+                        <div class="glass-panel p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 group">
                             <div>
                                 <span class="font-bold block text-main">${e.name}</span>
                                 <span class="text-[10px] text-muted font-mono"><i class="fas fa-clock mr-1"></i> Scheduled: ${d}</span>
@@ -623,7 +632,7 @@
                                 <button onclick="toggleExamPublish('${e.id}', ${isPub})" class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition border ${isPub ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-dark text-muted border-theme hover:bg-panel hover:text-main'}">
                                     ${isPub ? '<i class="fas fa-eye mr-1"></i> Published' : '<i class="fas fa-eye-slash mr-1"></i> Unpublished'}
                                 </button>
-                                <div class="flex gap-2 opacity-100 sm:opacity-50 group-hover:opacity-100 transition">
+                                <div class="flex gap-2 sm:opacity-50 group-hover:opacity-100 transition">
                                     <button onclick="editItem('exams','${e.id}')" class="text-muted hover:text-blue-500 p-2"><i class="fas fa-edit"></i></button>
                                     <button onclick="deleteItem('exams','${e.id}')" class="text-muted hover:text-red-500 p-2"><i class="fas fa-trash"></i></button>
                                 </div>
@@ -637,7 +646,7 @@
                 title.innerText = 'Result Entry';
                 await refreshData();
                 content.innerHTML = `
-                    <div class="glass-panel p-5 md:p-8 rounded-2xl max-w-3xl mx-auto fade-in text-center border-t-4 border-indigo-500">
+                    <div class="glass-panel p-5 md:p-8 rounded-2xl max-w-5xl mx-auto fade-in text-center border-t-4 border-indigo-500">
                         <h3 class="text-xl md:text-2xl font-bold mb-2 text-main">Enter Results</h3>
                         <p class="text-xs md:text-sm text-muted mb-6">Select exam and class to enter marks. Existing marks will load automatically.</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6">
@@ -658,9 +667,9 @@
                 else { draftGradeScale = JSON.parse(JSON.stringify(DEFAULT_SCALES[currentTemplate])); }
 
                 content.innerHTML = `
-                    <div class="max-w-4xl mx-auto fade-in space-y-4 md:space-y-6">
-                        <div class="glass-panel p-4 md:p-8 rounded-2xl">
-                            <h4 class="font-bold border-b border-theme pb-4 mb-4 md:mb-6 text-main">Identity & Branding</h4>
+                    <div class="w-full fade-in space-y-4 md:space-y-6 max-w-6xl mx-auto">
+                        <div class="glass-panel p-5 md:p-8 rounded-2xl">
+                            <h4 class="font-bold border-b border-theme pb-3 md:pb-4 mb-4 md:mb-6 text-main">Identity & Branding</h4>
                             <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-6">
                                 <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">School Name</label><input id="set-name" class="input-field mt-1" value="${i.name}"></div>
                                 <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Tagline</label><input id="set-tag" class="input-field mt-1" value="${i.tagline||''}"></div>
@@ -712,8 +721,8 @@
 
                             </div>
                         </div>
-                        <div class="glass-panel p-4 md:p-8 rounded-2xl">
-                            <h4 class="font-bold border-b border-theme pb-4 mb-4 md:mb-6 text-main">Contact & Assets</h4>
+                        <div class="glass-panel p-5 md:p-8 rounded-2xl">
+                            <h4 class="font-bold border-b border-theme pb-3 md:pb-4 mb-4 md:mb-6 text-main">Contact & Assets</h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6">
                                 <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Email</label><input id="set-email" class="input-field mt-1" value="${i.contactEmail||''}"></div>
                                 <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Phone</label><input id="set-phone" class="input-field mt-1" value="${i.contactPhone||''}"></div>
@@ -776,6 +785,30 @@
         }
 
         // --- UNIVERSAL EDIT FUNCTION ---
+        function openRegisterModal() {
+            $('modal-overlay').classList.remove('hidden');
+            $('modal-title').innerText = `Register New Student`; 
+            const opts = localState.classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+            $('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Full Name</label><input id="s-name" class="input-field text-sm" placeholder="Full Name"></div>
+                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Admission No</label><input id="s-adm" class="input-field text-sm" placeholder="Unique ID"></div>
+                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Date of Birth</label><input id="s-dob" type="date" class="input-field text-muted text-sm"></div>
+                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Class</label><select id="s-class" class="input-field text-muted text-sm"><option value="">Select Class...</option>${opts}</select></div>
+                    </div>
+                    <div class="border-t border-theme pt-4 mt-2">
+                        <h4 class="text-[10px] md:text-xs font-bold text-main mb-3 uppercase tracking-wider">Guardian Details</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Parent/Guardian Name</label><input id="s-parent" class="input-field text-sm" placeholder="Name"></div>
+                            <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Mobile Number</label><input id="s-phone" class="input-field text-sm" placeholder="Phone"></div>
+                            <div class="sm:col-span-2"><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Home Address</label><input id="s-address" class="input-field text-sm" placeholder="Full Address"></div>
+                        </div>
+                    </div>
+                    <button onclick="addStudent()" class="w-full btn-primary mt-4 py-3">Complete Registration</button>
+                </div>`;
+        }
+
         function editItem(type, id) {
             $('modal-overlay').classList.remove('hidden');
             $('modal-title').innerText = `Edit ${type.slice(0, -1)}`; 
@@ -864,7 +897,9 @@
                     name: n, admissionNo: a, classId: c, dob: d, password: a,
                     parentName: pName, contactPhone: phone, address: addr
                 }); 
-                await renderTab('students'); showLoader(false); showToast("Student Added"); 
+                await renderTab('students');
+                closeModal();
+                showLoader(false); showToast("Student Added"); 
             } else {
                 showToast("Name, Adm No and Class are required", "error");
             }
@@ -920,19 +955,19 @@
             const container = $('student-list');
             if(list.length === 0) { container.innerHTML = '<div class="p-8 text-center text-muted">No students found.</div>'; return; }
 
-            container.innerHTML = `<div class="divide-y divide-theme">${list.map(s => {
+            container.innerHTML = `<div class="divide-y divide-theme/50">${list.map(s => {
                 const cls = localState.classes.find(c=>c.id===s.classId)?.name || 'N/A';
-                return `<div class="p-3 md:p-4 flex justify-between items-center hover:bg-slate-800/10 transition group px-4 md:px-6">
-                    <div class="flex items-center gap-3 md:gap-4">
+                return `<div class="p-3 md:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/10 transition group px-4 md:px-6 gap-3 border-b border-theme/50 last:border-0">
+                    <div class="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
                         <input type="checkbox" class="stu-check rounded bg-dark border-theme" value="${s.id}" onchange="updateBulkState()">
-                        <div>
+                        <div class="flex-1">
                             <p class="font-bold text-sm text-main">${s.name}</p>
-                            <p class="text-[10px] text-muted font-mono">${s.admissionNo} • <span class="text-indigo-400">${cls}</span> ${s.parentName ? `• <span class="opacity-70"><i class="fas fa-user-friends mr-1"></i>${s.parentName}</span>` : ''}</p>
+                            <p class="text-[10px] text-muted font-mono mt-0.5">${s.admissionNo} • <span class="text-indigo-400">${cls}</span> ${s.parentName ? `<span class="opacity-70 hidden md:inline"> • <i class="fas fa-user-friends mx-1"></i>${s.parentName}</span>` : ''}</p>
                         </div>
                     </div>
-                    <div class="flex gap-2 opacity-100 sm:opacity-50 group-hover:opacity-100 transition">
-                        <button onclick="editItem('students','${s.id}')" class="p-2 text-muted hover:text-blue-500 bg-panel rounded transition border border-theme"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteItem('students','${s.id}')" class="p-2 text-red-500 bg-panel border border-theme rounded hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash"></i></button>
+                    <div class="flex gap-2 w-full sm:w-auto justify-end sm:opacity-50 group-hover:opacity-100 transition">
+                        <button onclick="editItem('students','${s.id}')" class="px-3 py-1.5 md:p-2 text-xs md:text-sm text-muted hover:text-blue-500 bg-dark md:bg-transparent rounded transition border border-theme md:border-transparent md:hover:border-theme shadow-sm md:shadow-none"><i class="fas fa-edit mr-1 md:mr-0"></i><span class="md:hidden">Edit</span></button>
+                        <button onclick="deleteItem('students','${s.id}')" class="px-3 py-1.5 md:p-2 text-xs md:text-sm text-red-500 hover:bg-red-500 hover:text-white bg-dark md:bg-transparent rounded transition border border-theme md:border-transparent md:hover:border-red-500 shadow-sm md:shadow-none"><i class="fas fa-trash mr-1 md:mr-0"></i><span class="md:hidden">Delete</span></button>
                     </div>
                 </div>`;
             }).join('')}</div>`;
