@@ -1,4 +1,4 @@
-// config.js - Shared Firebase Configuration
+// config.js - Shared Firebase Configuration & App Setup
 
 const firebaseConfig = {
     apiKey: "AIzaSyBjnj-jmPUJzmJvk3hu0vC663xTDusNe-Q",
@@ -10,10 +10,29 @@ const firebaseConfig = {
     measurementId: "G-D82F2D7CXL"
 };
 
-// Initialize Firebase only once
+// 1. Initialize Main Firebase App
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// Make the database connection globally available to all files
+// 2. Initialize Secondary App (Silently creates users without logging the Admin/Owner out)
+let secondaryApp;
+if (firebase.apps.length === 1) {
+    secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
+} else {
+    secondaryApp = firebase.app("SecondaryApp");
+}
+
+// 3. Global Services
 const db = firebase.firestore();
+const auth = firebase.auth();
+const secondaryAuth = secondaryApp.auth();
+
+// PWA: Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('PWA Service Worker Registered Successfully'))
+            .catch(err => console.error('PWA Service Worker Registration Failed: ', err));
+    });
+}

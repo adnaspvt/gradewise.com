@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Student Portal | easyresults</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020617">
+    <link rel="apple-touch-icon" href="logo.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="security.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,713 +18,491 @@
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="config.js"></script>
     <script src="utils.js"></script>
 
     <style>
-        :root {
-            --bg-dark: #020617;
-            --bg-panel: rgba(15, 23, 42, 0.85);
-            --primary: #6366f1; 
-            --primary-dark: #4338ca;
-            --primary-glow: rgba(99, 102, 241, 0.4);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: rgba(255,255,255,0.08);
-            --bg-input: rgba(30, 41, 59, 0.6);
-        }
-
-        .text-main { color: var(--text-main) !important; }
-        .text-muted { color: var(--text-muted) !important; }
-        .bg-dark { background-color: var(--bg-dark) !important; }
-        .bg-panel { background-color: var(--bg-panel) !important; }
-        .border-theme { border-color: var(--border) !important; }
+        :root { --bg-dark: #020617; --bg-panel: rgba(15, 23, 42, 0.95); --bg-input: rgba(30, 41, 59, 0.6); --primary: #6366f1; --primary-glow: rgba(99, 102, 241, 0.5); --text-main: #f8fafc; --text-muted: #94a3b8; --border: rgba(255,255,255,0.08); }
+        .text-main { color: var(--text-main) !important; } .text-muted { color: var(--text-muted) !important; } .bg-dark { background-color: var(--bg-dark) !important; } .bg-panel { background-color: var(--bg-panel) !important; } .border-theme { border-color: var(--border) !important; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-main); background-image: radial-gradient(at 0% 0%, var(--primary-glow) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%); background-attachment: fixed; transition: background-color 0.5s ease, color 0.5s ease; overflow-x: hidden; }
+        .glass-panel { background: var(--bg-panel); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); transition: background 0.5s ease, border-color 0.5s ease; }
+        .input-field { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px 16px; border-radius: 10px; width: 100%; outline: none; transition: all 0.2s ease; font-size: 0.95rem; min-height: 44px; }
+        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), #4338ca); color: white !important; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 15px -3px var(--primary-glow); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; min-height: 44px; }
+        .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .nav-item { padding: 14px 0; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; border-bottom: 2px solid transparent; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; cursor: pointer; }
+        .nav-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .nav-item:hover { color: var(--text-main); }
+        .exam-card { background: var(--bg-panel); border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s; }
+        .exam-card:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 10px 30px -10px var(--primary-glow); }
+        .fade-in { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(15px); } @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        #global-loader { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; } .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: var(--bg-dark); } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: var(--bg-dark); 
-            color: var(--text-main);
-            overflow-x: hidden;
-            transition: background-color 0.5s ease, color 0.5s ease;
-        }
-
-        .bg-orb { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.3; z-index: -1; animation: float 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
-        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20px, -20px) scale(1.1); } }
-        
-        .glass-panel { background: var(--bg-panel); backdrop-filter: blur(20px); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: background 0.5s ease, border-color 0.5s ease; }
-        
-        /* Mobile Touch Target Optimization */
-        .input-dark { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px 16px; border-radius: 10px; width: 100%; outline: none; transition: 0.3s; min-height: 44px; }
-        .input-dark:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
-        
-        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white !important; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; min-height: 44px; }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-
-        .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 4px; border-radius: 12px; color: var(--text-muted); transition: 0.2s; cursor: pointer; font-weight: 500; border-left: 3px solid transparent; }
-        .nav-item:hover { background: rgba(125,125,125,0.1); color: var(--text-main); }
-        .nav-item.active { background: var(--primary-glow); color: var(--text-main); border-left-color: var(--primary); }
-
-        /* Document Styling */
-        .a4-container { width: 210mm; min-height: 297mm; padding: 0; background: #fff; color: #1e293b; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; overflow: hidden; margin: 2rem auto; display: flex; flex-direction: column; transform-origin: top center; transition: all 0.3s ease; text-align: left; }
-        .transcript-frame { border: 8px solid #1e293b; outline: 2px solid #94a3b8; outline-offset: -12px; height: 100%; min-height: 290mm; margin: 8mm; position: relative; display: flex; flex-direction: column; background: #fff; z-index: 10; }
-        .transcript-inner { padding: 8mm 12mm; flex: 1; display: flex; flex-direction: column; background-image: radial-gradient(#f1f5f9 1px, transparent 1px); background-size: 25px 25px; }
-        .watermark-layer { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; opacity: 0.04; pointer-events: none; z-index: 0; }
-        .watermark-logo { width: 50%; filter: grayscale(100%); }
-        .content-layer { position: relative; z-index: 20; flex: 1; display: flex; flex-direction: column; }
-        .mk-serif { font-family: 'Playfair Display', serif; }
-        .mk-header-font { font-family: 'Cinzel', serif; }
-        .info-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; margin: 1.5rem 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
-        .info-row { display: flex; border-bottom: 1px dotted #cbd5e1; padding-bottom: 3px; margin-bottom: 6px; }
-        .info-label { width: 110px; font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .info-val { font-weight: 700; color: #0f172a; font-family: 'Playfair Display', serif; font-size: 1rem; }
-        .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-        .mk-table th { background: #f8fafc; color: #334155; padding: 10px; text-transform: uppercase; font-size: 0.65rem; font-weight: 800; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; }
-        .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; color: #334155; text-align: center; font-weight: 500; font-size: 0.9rem; }
-        .mk-table td:first-child { text-align: left; padding-left: 10px; font-weight: 600; color: #0f172a; }
-        .stats-box { display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; border-left: 1px solid #cbd5e1; padding-left: 1.5rem; }
-        .stat-row { display: flex; justify-content: space-between; align-items: center; }
-        .stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; }
-        .stat-val { font-weight: 800; color: #0f172a; font-size: 1.1rem; }
-        .doc-footer { display: flex; justify-content: space-between; align-items: end; margin-top: 1rem; border-top: 2px solid #1e293b; padding-top: 1rem; }
-        .principal-box { text-align: center; width: 180px; }
-        .stamp-status { padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; font-weight: 800; text-transform: uppercase; display: inline-block; font-size: 0.85rem; }
-        .pass { color: #059669; border-color: #059669; background: #ecfdf5; }
-        .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
-
-        #global-loader { background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; }
-        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* --- MOBILE APP UI OPTIMIZATIONS --- */
-        @media (max-width: 768px) {
-            #content-area { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); } 
-            .mobile-nav-item.active { color: var(--primary); }
-            .mobile-nav-item.active i { transform: translateY(-3px) scale(1.15); filter: drop-shadow(0 4px 6px var(--primary-glow)); color: var(--primary); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-            
-            /* Crucial Fix: Stops flexbox from pushing content off screen */
-            .a4-container { margin: 0 !important; transform-origin: top left !important; } 
-            #marksheet-modal-content { height: 100dvh; border-radius: 0; display: flex; flex-direction: column; background: var(--bg-dark); overflow: hidden; }
-            #marksheet-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%; display: block; text-align: left; } 
-        }
+        .a4-container { width: 210mm; min-height: 297mm; background: #fff; color: #1e293b; font-family: 'Inter', sans-serif; transform: scale(0.65); transform-origin: top left; margin: 0 auto; display: flex; flex-direction: column; }
+        .transcript-frame { border: 8px solid #1e293b; outline: 2px solid #94a3b8; outline-offset: -12px; height: 100%; min-height: 290mm; margin: 8mm; position: relative; display: flex; flex-direction: column; background: #fff; }
+        .transcript-inner { padding: 8mm 12mm; height: 100%; display: flex; flex-direction: column; background-image: radial-gradient(#f1f5f9 1px, transparent 1px); background-size: 25px 25px; }
+        .mk-serif { font-family: 'Playfair Display', serif; } .mk-header-font { font-family: 'Cinzel', serif; } .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; } .mk-table th { background: #f8fafc; color:#334155; padding: 10px; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; } .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: center; }
+        .stamp-status { padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; font-weight: 800; text-transform: uppercase; display: inline-block; font-size: 0.85rem; } .pass { color: #059669; border-color: #059669; background: #ecfdf5; } .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
     </style>
 </head>
-<body class="overflow-hidden h-[100dvh] w-screen flex text-sm selection:bg-indigo-500/30">
+<body class="flex flex-col min-h-screen">
 
-    <div id="global-loader" class="fixed inset-0 hidden flex flex-col items-center justify-center text-white z-[9999]">
+    <div id="global-loader" class="fixed inset-0 flex flex-col items-center justify-center text-white z-[9999] hidden">
         <div class="spinner mb-4"></div>
-        <p class="text-sm font-bold tracking-widest animate-pulse font-mono">CONNECTING TO CLOUD...</p>
-    </div>
-
-    <div class="fixed inset-0 pointer-events-none">
-        <div class="bg-orb top-0 left-0 w-[600px] h-[600px]" style="background: var(--primary); opacity: 0.15;"></div>
-        <div class="bg-orb bottom-0 right-0 w-[500px] h-[500px]" style="background: var(--primary); animation-delay: -5s; opacity: 0.1;"></div>
-        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.04]"></div>
+        <p class="text-sm font-bold tracking-widest animate-pulse font-mono">LOADING...</p>
     </div>
 
     <div id="toast-container" class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
 
-    <section id="view-login" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-dark p-4">
-        <div class="glass-panel p-8 md:p-10 rounded-2xl shadow-2xl w-full max-w-sm relative z-10 border-theme">
-            <div class="text-center mb-10">
-                <div class="w-16 h-16 bg-panel rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 text-main border-theme shadow-lg">
-                    <i class="fas fa-user-graduate"></i>
+    <section id="view-login" class="flex-1 flex items-center justify-center p-4 z-10 hidden">
+        <div class="glass-panel p-8 md:p-10 rounded-3xl w-full max-w-sm border-theme shadow-2xl relative">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto rounded-full flex items-center justify-center overflow-hidden bg-slate-100 mb-4 border-2 border-theme shadow-lg">
+                    <img id="login-logo" src="logo.png" class="max-w-full max-h-full object-cover">
                 </div>
-                <h1 class="text-2xl font-bold tracking-tight text-main">Student Portal</h1>
-                <p class="text-muted text-xs uppercase tracking-widest mt-2">Academic Access</p>
+                <h1 id="login-school-name" class="text-xl font-bold tracking-tight text-main mb-1 truncate px-2">Loading...</h1>
+                <p class="text-[10px] uppercase tracking-widest font-bold text-muted">Student Portal</p>
             </div>
-            <form onsubmit="handleLogin(event)" class="space-y-5">
-                <input type="hidden" id="login-inst">
-                <div><label class="text-xs font-bold text-muted uppercase ml-1">Admission No</label><input id="login-username" class="input-dark" required></div>
-                <div><label class="text-xs font-bold text-muted uppercase ml-1">Password</label><input type="password" id="login-password" class="input-dark" required></div>
-                <button id="btn-login" class="w-full btn-primary py-3">Access Results</button>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div><label class="text-[10px] font-bold text-muted uppercase ml-1 block mb-1">Admission No.</label><input id="login-id" class="input-field" required placeholder="e.g. ADM1024"></div>
+                <div><label class="text-[10px] font-bold text-muted uppercase ml-1 block mb-1">Password</label><input type="password" id="login-pass" class="input-field" required placeholder="Enter password"></div>
+                <button id="btn-login" class="w-full btn-primary py-3.5 rounded-xl mt-4 text-sm"><i class="fas fa-sign-in-alt"></i> Secure Login</button>
             </form>
-            <div class="mt-6 text-center text-xs text-muted"><a id="link-home" href="index.html" class="hover:text-main transition"><i class="fas fa-home mr-1"></i> Home</a></div>
+            <div class="mt-6 text-center text-xs"><a id="link-return-portal" href="index.html" class="text-muted hover:text-main transition font-bold"><i class="fas fa-arrow-left"></i> Back to Portal</a></div>
         </div>
     </section>
 
-    <div id="view-dashboard" class="hidden w-full h-full flex relative z-10">
-        
-        <aside class="hidden md:flex w-72 bg-panel border-r border-theme flex-col flex-shrink-0 z-40 backdrop-blur-md">
-            <div class="p-8 border-b border-theme flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold border border-white/20 overflow-hidden shadow-lg relative" style="background-color: var(--primary);">
-                    <img id="sb-logo" class="w-full h-full object-cover hidden">
-                    <i id="sb-icon" class="fas fa-university text-lg"></i>
-                </div>
-                <div class="overflow-hidden">
-                    <h2 class="font-bold text-sm leading-tight truncate w-32 text-main" id="sb-school">School Name</h2>
-                    <span class="text-[10px] text-muted font-mono font-bold tracking-widest uppercase">Student Panel</span>
-                </div>
-            </div>
-            <nav class="flex-1 p-5 overflow-y-auto space-y-1">
-                <div class="text-[10px] font-extrabold text-muted uppercase tracking-widest mb-3 px-3 mt-2">Menu</div>
-                <div onclick="renderTab('home')" class="nav-item active"><i class="fas fa-th-large w-5 text-center"></i> Overview</div>
-                <div onclick="renderTab('results')" class="nav-item"><i class="fas fa-file-signature w-5 text-center"></i> Exam Results</div>
-                <div onclick="renderTab('profile')" class="nav-item"><i class="fas fa-user-circle w-5 text-center"></i> My Profile</div>
-            </nav>
-            <div class="p-5 border-t border-theme">
-                <div class="flex items-center gap-3 mb-4 px-2 py-2 rounded-xl bg-dark border-theme">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0" style="background-color: var(--primary-glow); color: var(--primary);"><i class="fas fa-user"></i></div>
+    <div id="view-dashboard" class="hidden flex-col min-h-screen">
+        <header class="glass-panel sticky top-0 z-30 border-b border-theme shrink-0">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3 w-2/3">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white shrink-0 shadow-sm border border-theme">
+                        <img id="dash-logo" class="max-w-full max-h-full object-cover">
+                    </div>
                     <div class="overflow-hidden">
-                        <p class="text-xs font-bold truncate text-main" id="sb-name">Student</p>
-                        <p class="text-[9px] text-muted font-mono truncate" id="sb-adm">000</p>
+                        <h2 id="dash-school-name" class="font-bold text-main text-sm truncate">School Name</h2>
+                        <p class="text-[10px] text-muted font-mono uppercase tracking-wider font-bold">Student Record</p>
                     </div>
                 </div>
-                <button onclick="logout()" class="w-full py-3 text-red-500 text-xs font-bold hover:bg-red-500/10 rounded-xl transition border border-red-500/20"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+                <button onclick="logout()" class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-bold transition border border-red-500/20 flex items-center gap-2 shrink-0"><i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline">Logout</span></button>
             </div>
-        </aside>
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 flex gap-6 sm:gap-8 overflow-x-auto no-scrollbar border-t border-theme/50">
+                <div onclick="renderTab('results')" class="nav-item active flex items-center gap-2"><i class="fas fa-file-contract"></i> Exam Results</div>
+                <div onclick="renderTab('profile')" class="nav-item flex items-center gap-2"><i class="fas fa-user-circle"></i> My Profile</div>
+            </div>
+        </header>
 
-        <main class="flex-1 flex flex-col min-w-0 relative h-full">
+        <main class="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 pb-20">
             
-            <header class="h-16 md:h-20 border-b border-theme bg-panel backdrop-blur-md flex items-center justify-between px-4 md:px-10 sticky top-0 z-30">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-dark flex items-center justify-center md:hidden overflow-hidden border border-theme shadow-sm shrink-0">
-                        <img id="mobile-header-logo-student" class="w-full h-full object-cover hidden">
-                        <i id="mobile-header-icon-student" class="fas fa-university text-xs" style="color: var(--primary)"></i>
-                    </div>
-                    <div class="md:hidden flex flex-col justify-center">
-                        <h2 id="mobile-header-school" class="text-xs font-extrabold text-main leading-tight truncate max-w-[180px]">School Name</h2>
-                        <p id="mobile-header-name" class="text-[10px] text-muted truncate max-w-[180px] font-mono">Student Name</p>
-                    </div>
-                    <h2 id="page-title" class="text-xl font-bold tracking-tight text-main hidden md:block">Overview</h2>
+            <div id="tab-results" class="fade-in">
+                <div class="flex items-center gap-4 mb-6 md:mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-panel border border-theme flex items-center justify-center text-xl text-primary shadow-lg"><i class="fas fa-award"></i></div>
+                    <div><h3 class="text-xl font-bold text-main">Academic Records</h3><p class="text-xs text-muted">View and download your official marksheets.</p></div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <p class="text-[10px] text-muted font-mono uppercase tracking-widest hidden sm:block">Live Sync</p>
-                </div>
-            </header>
+                <div id="results-list" class="space-y-4"></div>
+            </div>
 
-            <div id="content-area" class="flex-1 overflow-y-auto p-4 md:p-10 pb-24 md:pb-32 w-full"></div>
+            <div id="tab-profile" class="hidden fade-in space-y-6">
+                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-primary">
+                    <div class="flex items-center gap-4 mb-6 pb-6 border-b border-theme">
+                        <div class="w-16 h-16 rounded-full bg-dark border-2 border-theme flex items-center justify-center text-2xl text-muted shadow-inner"><i class="fas fa-user"></i></div>
+                        <div><h3 id="prof-name" class="text-xl font-bold text-main mb-1">Name</h3><p id="prof-adm" class="text-xs text-muted font-mono bg-dark px-2 py-1 rounded inline-block border border-theme">ID: ---</p></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div><p class="text-[10px] font-bold text-muted uppercase mb-1">Class</p><p id="prof-class" class="font-medium text-main">---</p></div>
+                        <div><p class="text-[10px] font-bold text-muted uppercase mb-1">Date of Birth</p><p id="prof-dob" class="font-medium text-main">---</p></div>
+                        <div><p class="text-[10px] font-bold text-muted uppercase mb-1">Guardian Name</p><p id="prof-parent" class="font-medium text-main">---</p></div>
+                        <div><p class="text-[10px] font-bold text-muted uppercase mb-1">Contact Phone</p><p id="prof-phone" class="font-medium text-main">---</p></div>
+                        <div class="sm:col-span-2"><p class="text-[10px] font-bold text-muted uppercase mb-1">Home Address</p><p id="prof-address" class="font-medium text-main">---</p></div>
+                    </div>
+                </div>
+                
+                <div class="glass-panel p-6 rounded-2xl border-l-4 border-l-yellow-500">
+                    <h4 class="font-bold text-main mb-4 flex items-center gap-2"><i class="fas fa-lock text-yellow-500"></i> Change Password</h4>
+                    <div class="space-y-4">
+                        <input type="password" id="upd-pass" class="input-field" placeholder="New Password">
+                        <button onclick="updatePassword()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold px-6 py-3 rounded-xl transition w-full sm:w-auto text-sm">Update Secure Password</button>
+                    </div>
+                </div>
+            </div>
+
         </main>
-        
-        <nav class="md:hidden fixed bottom-0 w-full bg-panel backdrop-blur-2xl border-t border-theme flex justify-around items-center z-50 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
-            <button onclick="renderTab('home')" class="mobile-nav-item active flex flex-col items-center p-3 flex-1 text-muted transition-all duration-300">
-                <i class="fas fa-th-large text-[1.1rem] mb-1"></i>
-                <span class="text-[9px] font-bold uppercase tracking-wider">Home</span>
-            </button>
-            <button onclick="renderTab('results')" class="mobile-nav-item flex flex-col items-center p-3 flex-1 text-muted transition-all duration-300">
-                <i class="fas fa-file-signature text-[1.1rem] mb-1"></i>
-                <span class="text-[9px] font-bold uppercase tracking-wider">Results</span>
-            </button>
-            <button onclick="renderTab('profile')" class="mobile-nav-item flex flex-col items-center p-3 flex-1 text-muted transition-all duration-300">
-                <i class="fas fa-user-circle text-[1.1rem] mb-1"></i>
-                <span class="text-[9px] font-bold uppercase tracking-wider">Profile</span>
-            </button>
-            <button onclick="logout()" class="flex flex-col items-center p-3 flex-1 text-red-500/70 hover:text-red-500 transition-all duration-300">
-                <i class="fas fa-sign-out-alt text-[1.1rem] mb-1"></i>
-                <span class="text-[9px] font-bold uppercase tracking-wider">Logout</span>
-            </button>
-        </nav>
     </div>
 
-    <div id="marksheet-modal" class="hidden fixed inset-0 z-[100] bg-dark sm:bg-black/95 sm:backdrop-blur-sm flex flex-col overflow-hidden fade-in">
-        
-        <div class="shrink-0 w-full flex items-center justify-between sm:justify-end gap-2 p-3 sm:p-4 bg-panel/90 backdrop-blur-md z-[110] border-b border-theme shadow-lg">
-            <button onclick="closeModal()" class="sm:hidden bg-slate-800 text-white w-10 h-10 rounded-full flex items-center justify-center border border-slate-600 shadow-md"><i class="fas fa-arrow-left"></i></button>
-            <div class="flex gap-2">
-                <button onclick="shareResult()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 transition border border-indigo-400"><i class="fas fa-share-alt"></i> Share</button>
-                <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 transition border border-blue-400"><i class="fas fa-file-pdf"></i> Save</button>
-                <button onclick="closeModal()" class="hidden sm:flex bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-xs font-bold backdrop-blur-md border border-white/10 transition items-center gap-2"><i class="fas fa-times"></i> Close</button>
+    <div id="marksheet-modal" class="hidden fixed inset-0 z-[100] bg-dark sm:bg-black/95 sm:backdrop-blur-sm flex justify-center sm:items-center overflow-hidden fade-in">
+        <div id="marksheet-modal-content" class="w-full sm:max-w-[210mm] relative bg-dark sm:bg-transparent h-[100dvh] sm:h-[90vh] sm:rounded-2xl flex flex-col">
+            <div class="sticky top-0 w-full flex flex-col sm:flex-row items-center justify-between sm:justify-end gap-2 p-3 sm:p-0 bg-panel/90 backdrop-blur-md sm:bg-transparent z-[110] border-b border-theme sm:border-none sm:absolute sm:-top-16 sm:right-0">
+                <div class="w-full flex justify-between sm:hidden mb-2 px-2">
+                    <button onclick="closeMarksheet()" class="bg-dark text-white w-10 h-10 rounded-full flex items-center justify-center border border-theme"><i class="fas fa-arrow-left"></i></button>
+                    <button onclick="shareMarksheet()" class="bg-green-600 hover:bg-green-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition border border-green-400"><i class="fab fa-whatsapp"></i></button>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto justify-center sm:justify-end">
+                    <button onclick="shareMarksheet()" class="hidden sm:flex bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-lg transition border border-green-400 items-center gap-2"><i class="fab fa-whatsapp"></i> Share</button>
+                    <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-8 sm:px-5 py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 transition border border-blue-400 w-full sm:w-auto justify-center"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                    <button onclick="closeMarksheet()" class="hidden sm:flex bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-xs font-bold backdrop-blur-md border border-white/10 transition items-center gap-2"><i class="fas fa-times"></i> Close</button>
+                </div>
             </div>
-        </div>
-        
-        <div id="marksheet-scroll-area" class="flex-1 overflow-x-hidden overflow-y-auto w-full pb-24 pt-4 px-2 sm:px-0">
-            <div id="mk-printable" class="a4-container"></div>
+            <div id="marksheet-scroll-area" class="flex-1 overflow-x-hidden overflow-y-auto w-full flex justify-center pb-32 sm:pb-0">
+                <div id="mk-printable" class="a4-container"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- GLOBAL BRANDING LISTENER ---
-        db.collection('site_config').doc('main').onSnapshot(doc => {
-            if(doc.exists) {
-                const brandName = doc.data().brandName || 'easyresults';
-                const currentTitleParts = document.title.split('|');
-                const currentTitle = currentTitleParts[0].trim();
-                document.title = `${currentTitle} | ${brandName}`;
-                document.querySelectorAll('.dynamic-brand-name').forEach(el => { el.innerText = brandName; });
-            }
-        });
-
         const SESSION_KEY = 'easyresults_student_session';
-        let currentStudent = null;
         let currentInst = null;
-        let cache = { subjects: [], exams: [], classes: [], results: [] };
-        
-        let isInitialLoad = true;
-        let activeResultId = null; 
+        let currentStudent = null;
+        let localData = { exams: [], results: [], subjects: [], classes: [] };
 
-        window.onload = () => { checkSession(); };
+        async function initPage() {
+            const params = new URLSearchParams(window.location.search);
+            let instId = params.get('id');
 
-        function checkSession() {
-            const s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
-            const urlParams = new URLSearchParams(window.location.search);
-            const instId = urlParams.get('id') || localStorage.getItem('easyresults_last_school');
-
-            if(s && s.id) {
-                startRealtimeListeners(s.id);
-                return;
+            const session = localStorage.getItem(SESSION_KEY);
+            if (session) {
+                const sData = JSON.parse(session);
+                currentInst = sData.inst;
+                currentStudent = sData.student;
+                instId = currentInst.id;
+            } else if (!instId) {
+                instId = localStorage.getItem('easyresults_last_school');
+                if(!instId) { window.location.href = 'index.html'; return; }
             }
 
-            if(instId) {
-                $('login-inst').value = instId;
-                if($('link-home')) $('link-home').href = `home.html?id=${instId}`;
-                
-                db.collection('institutions').doc(instId).onSnapshot(doc => {
-                    if(doc.exists) {
-                        currentInst = { id: doc.id, ...doc.data() };
-                        applyTheme(currentInst);
-                        localStorage.setItem('easyresults_last_school', instId);
+            try {
+                const doc = await db.collection('institutions').doc(instId).get();
+                if(doc.exists) {
+                    currentInst = { id: doc.id, ...doc.data() };
+                    
+                    document.title = `Student Login | ${currentInst.name}`;
+                    $('login-school-name').innerText = currentInst.name;
+                    $('dash-school-name').innerText = currentInst.name;
+                    
+                    if(currentInst.profileImage) {
+                        $('login-logo').src = currentInst.profileImage;
+                        $('dash-logo').src = currentInst.profileImage;
                     }
-                });
-                
-                $('view-login').classList.remove('hidden');
-            } else {
-                window.location.href = 'index.html'; 
+                    
+                    applyTheme(currentInst);
+
+                    if(session) {
+                        $('view-login').classList.add('hidden');
+                        $('view-dashboard').classList.remove('hidden');
+                        $('view-dashboard').classList.add('flex');
+                        await loadStudentData();
+                    } else {
+                        $('view-login').classList.remove('hidden');
+                        $('link-return-portal').href = `home.html?id=${currentInst.id}`;
+                    }
+                } else {
+                    showToast("Institution not found", "error");
+                    setTimeout(() => window.location.href='index.html', 2000);
+                }
+            } catch(e) {
+                console.error(e);
+                showToast("Network Error", "error");
             }
         }
+
+        window.onload = initPage;
 
         async function handleLogin(e) {
             e.preventDefault();
-            const instId = $('login-inst').value;
-            const uname = $('login-username').value;
-            const pass = $('login-password').value;
-            const btn = $('btn-login');
-
-            if(!uname || !pass) return showToast("Enter credentials", "error");
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            const btn = $('btn-login'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            const uname = $('login-id').value.trim();
+            const pass = $('login-pass').value;
 
             try {
-                const snap = await db.collection('students').where('institutionId', '==', instId).where('admissionNo', '==', uname).where('password', '==', pass).get();
-                if(!snap.empty) {
-                    const doc = snap.docs[0];
-                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ id: doc.id }));
+                // PHASE 1 SECURITY: Use Firebase Auth instead of reading database plain text passwords
+                const safeAdm = uname.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                const dummyEmail = `${safeAdm}@${currentInst.id.toLowerCase()}.edu`;
+
+                const userCred = await auth.signInWithEmailAndPassword(dummyEmail, pass);
+                const uid = userCred.user.uid;
+
+                // Fetch Student Profile from Firestore using the secure UID
+                const stuDoc = await db.collection('students').doc(uid).get();
+                
+                if (stuDoc.exists && stuDoc.data().institutionId === currentInst.id) {
+                    currentStudent = { id: stuDoc.id, ...stuDoc.data() };
+                    localStorage.setItem(SESSION_KEY, JSON.stringify({ inst: currentInst, student: currentStudent }));
+                    localStorage.setItem('easyresults_last_school', currentInst.id);
+                    
                     $('view-login').classList.add('hidden');
-                    startRealtimeListeners(doc.id);
-                } else { 
-                    showToast("Invalid Admission No or Password", "error"); 
-                    btn.innerHTML = 'Access Results'; 
-                }
-            } catch(e) { console.error(e); showToast("Connection Error", "error"); btn.innerHTML = 'Access Results'; }
-        }
-
-        function startRealtimeListeners(studentId) {
-            showLoader(true);
-            
-            db.collection('students').doc(studentId).onSnapshot(doc => {
-                if(!doc.exists) { logout(); return; }
-                currentStudent = { id: doc.id, ...doc.data() };
-                
-                db.collection('institutions').doc(currentStudent.institutionId).onSnapshot(instDoc => {
-                    if(instDoc.exists) {
-                        currentInst = { id: instDoc.id, ...instDoc.data() };
-                        applyTheme(currentInst);
-                        updateSidebar();
-                        liveUpdateUI();
-                    }
-                });
-
-                db.collection('classes').where('institutionId', '==', currentStudent.institutionId).onSnapshot(snap => {
-                    cache.classes = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    liveUpdateUI();
-                });
-
-                db.collection('exams').where('institutionId', '==', currentStudent.institutionId).onSnapshot(snap => {
-                    cache.exams = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    liveUpdateUI();
-                });
-
-                db.collection('subjects').where('institutionId', '==', currentStudent.institutionId).onSnapshot(snap => {
-                    cache.subjects = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    liveUpdateUI();
-                });
-
-                db.collection('results').where('studentId', '==', currentStudent.id).onSnapshot(snap => {
-                    cache.results = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    liveUpdateUI();
-                });
-
-                if(isInitialLoad) {
-                    setTimeout(() => {
-                        isInitialLoad = false;
-                        showLoader(false);
-                        initDashboard();
-                    }, 1200); 
+                    $('view-dashboard').classList.remove('hidden');
+                    $('view-dashboard').classList.add('flex');
+                    await loadStudentData();
                 } else {
-                    updateSidebar();
-                    liveUpdateUI();
+                    throw new Error("Student record missing or inactive.");
                 }
+            } catch(e) { 
+                console.error(e);
+                showToast("Invalid Admission No or Password.", "error"); 
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Secure Login'; 
+            }
+        }
+
+        function logout() {
+            auth.signOut();
+            localStorage.removeItem(SESSION_KEY);
+            window.location.reload();
+        }
+
+        async function updatePassword() {
+            const newPass = $('upd-pass').value;
+            if(!newPass) return showToast("Enter a new password", "error");
+            
+            showLoader(true);
+            try {
+                // PHASE 1 SECURITY: Update password directly in Firebase Auth
+                const user = auth.currentUser;
+                if (user) {
+                    await user.updatePassword(newPass);
+                    showToast("Password updated securely!");
+                    $('upd-pass').value = '';
+                } else {
+                    showToast("Session expired. Please log in again to change password.", "error");
+                    setTimeout(logout, 2000);
+                }
+            } catch(err) {
+                showToast("Error updating password: You may need to log out and log back in first.", "error");
+                console.error(err);
+            }
+            showLoader(false);
+        }
+
+        async function loadStudentData() {
+            showLoader(true);
+            try {
+                const [e, r, sub, c] = await Promise.all([
+                    db.collection('exams').where('institutionId', '==', currentInst.id).where('isPublished', '==', true).get(),
+                    db.collection('results').where('studentId', '==', currentStudent.id).get(),
+                    db.collection('subjects').where('classId', '==', currentStudent.classId).get(),
+                    db.collection('classes').doc(currentStudent.classId).get()
+                ]);
+                
+                localData.exams = e.docs.map(d => ({id: d.id, ...d.data()}));
+                localData.results = r.docs.map(d => ({id: d.id, ...d.data()}));
+                localData.subjects = sub.docs.map(d => ({id: d.id, ...d.data()}));
+                localData.classes = c.exists ? {id: c.id, ...c.data()} : {name: 'Unknown Class'};
+                
+                populateProfile();
+                renderTab('results');
+            } catch(e) { console.error(e); showToast("Failed to load data", "error"); }
+            showLoader(false);
+        }
+
+        function populateProfile() {
+            $('prof-name').innerText = currentStudent.name;
+            $('prof-adm').innerText = `ID: ${currentStudent.admissionNo}`;
+            $('prof-class').innerText = localData.classes.name;
+            $('prof-dob').innerText = currentStudent.dob || 'Not Provided';
+            $('prof-parent').innerText = currentStudent.parentName || 'Not Provided';
+            $('prof-phone').innerText = currentStudent.contactPhone || 'Not Provided';
+            $('prof-address').innerText = currentStudent.address || 'Not Provided';
+        }
+
+        function renderTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.toggle('active', el.getAttribute('onclick').includes(tab));
             });
-        }
-
-        function liveUpdateUI() {
-            if($('view-dashboard').classList.contains('hidden')) return;
             
-            const activeItem = document.querySelector('.nav-item.active') || document.querySelector('.mobile-nav-item.active');
-            if(activeItem) {
-                if(activeItem.getAttribute('onclick').includes('home')) renderTab('home', false);
-                if(activeItem.getAttribute('onclick').includes('results')) renderTab('results', false);
-                if(activeItem.getAttribute('onclick').includes('profile')) renderTab('profile', false);
-            }
-
-            if(!$('marksheet-modal').classList.contains('hidden') && activeResultId) {
-                openMarksheet(activeResultId, true); 
-            }
-        }
-
-        function logout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
-        
-        function initDashboard() {
-            $('view-dashboard').classList.remove('hidden');
-            updateSidebar();
-            renderTab('home');
-        }
-
-        function updateSidebar() {
-            if(!currentInst) return;
-            $('sb-school').innerText = currentInst.name;
-            if($('mobile-header-school')) $('mobile-header-school').innerText = currentInst.name;
-            
-            if($('sb-name')) $('sb-name').innerText = currentStudent.name;
-            if($('mobile-header-name')) $('mobile-header-name').innerText = currentStudent.name;
-            
-            if($('sb-adm')) $('sb-adm').innerText = currentStudent.admissionNo;
-            
-            if(currentInst.profileImage) { 
-                $('sb-logo').src = currentInst.profileImage; 
-                $('sb-logo').classList.remove('hidden'); 
-                $('sb-icon').classList.add('hidden'); 
-                
-                const ml = $('mobile-header-logo-student');
-                if(ml) { 
-                    ml.src = currentInst.profileImage; 
-                    ml.classList.remove('hidden'); 
-                    $('mobile-header-icon-student').classList.add('hidden'); 
-                }
-            }
-        }
-
-        function renderTab(tab, forceTitle = true) {
-            if(forceTitle) {
-                document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
-                    if(el.getAttribute('onclick')) {
-                        el.classList.toggle('active', el.getAttribute('onclick').includes(tab));
-                    }
-                });
-            }
-            const content = $('content-area');
-            const title = $('page-title');
-
-            if(!currentStudent || !currentInst) return;
-
-            if(tab === 'home') {
-                if(forceTitle) title.innerText = 'Overview';
-                content.innerHTML = `
-                    <div class="glass-panel p-5 md:p-8 rounded-2xl fade-in relative overflow-hidden group mb-6" style="border-left: 4px solid var(--primary);">
-                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 opacity-50"></div>
-                        <div class="relative z-10">
-                            <h3 class="text-xl md:text-2xl font-bold mb-2 text-main">Welcome Back, ${currentStudent.name} 👋</h3>
-                            <p class="text-xs md:text-sm text-muted">Access your academic records and profile settings.</p>
-                            <button onclick="renderTab('results')" class="mt-4 px-5 py-2 bg-dark text-main rounded-lg text-xs font-bold hover:bg-panel transition border-theme shadow-lg">Check Results</button>
-                        </div>
-                    </div>`;
-            }
-
             if(tab === 'results') {
-                if(forceTitle) title.innerText = 'Academic Records';
-                const results = cache.results;
+                $('tab-profile').classList.add('hidden');
+                $('tab-results').classList.remove('hidden');
                 
-                let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 fade-in">`;
-                let hasPublished = false;
-
-                results.forEach(r => {
-                    const exam = cache.exams.find(e => e.id === r.examId);
-                    if(!exam) return; 
-                    
-                    const pubDate = exam.publishDate ? new Date(exam.publishDate) : new Date(0);
-                    if(pubDate > new Date() || exam.isPublished === false) return; 
-                    
-                    hasPublished = true;
-                    html += `<div class="glass-panel p-5 md:p-6 rounded-2xl relative overflow-hidden group hover:border-slate-500 transition">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="w-10 h-10 rounded-lg bg-dark flex items-center justify-center text-lg border-theme shrink-0" style="color:var(--primary)"><i class="fas fa-file-contract"></i></div>
-                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase border" style="color:var(--primary); border-color:var(--primary-glow)">Published</span>
-                        </div>
-                        <h3 class="text-lg md:text-xl font-bold mb-2 text-main">${exam.name} <span class="text-indigo-400 text-xs ml-1">[${exam.academicYear||''}]</span></h3>
-                        <button onclick="openMarksheet('${r.id}')" class="w-full mt-4 py-2.5 md:py-2 bg-dark hover:bg-panel text-main rounded-lg text-xs font-bold transition border-theme">View Marksheet</button>
-                    </div>`;
-                });
-                html += `</div>`;
-
-                if(!hasPublished) {
-                    html = `<div class="glass-panel p-10 md:p-12 text-center text-muted rounded-2xl border-theme text-sm">No results published yet.</div>`;
-                }
-                content.innerHTML = html;
-            }
-
-            if(tab === 'profile') {
-                if(forceTitle) title.innerText = 'Profile Settings';
-                const cls = cache.classes.find(c => c.id === currentStudent.classId)?.name || 'N/A';
+                const container = $('results-list');
                 
-                if(forceTitle) {
-                    content.innerHTML = `
-                        <div class="max-w-2xl mx-auto glass-panel p-5 md:p-8 rounded-2xl fade-in flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 border-t-4 md:border-t-0 md:border-l-4" style="border-color: var(--primary);">
-                            <div class="w-20 h-20 rounded-full bg-dark flex items-center justify-center text-3xl border-theme flex-shrink-0 shadow-lg" style="color:var(--primary)"><i class="fas fa-user"></i></div>
-                            <div class="flex-1 space-y-5 w-full">
-                                <h3 class="text-sm md:text-lg font-bold border-b border-theme pb-2 text-main uppercase md:capitalize tracking-wider md:tracking-normal">Personal Details</h3>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div><label class="text-[10px] uppercase font-bold text-muted">Name</label><input id="pf-name" class="input-dark mt-1 text-sm md:text-base" value="${currentStudent.name}"></div>
-                                    <div><label class="text-[10px] uppercase font-bold text-muted">Admission No</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed text-sm md:text-base" value="${currentStudent.admissionNo}" disabled></div>
-                                    <div><label class="text-[10px] uppercase font-bold text-muted">DOB</label><input type="date" id="pf-dob" class="input-dark mt-1 text-sm md:text-base" value="${currentStudent.dob || ''}"></div>
-                                    <div><label class="text-[10px] uppercase font-bold text-muted">Class</label><input class="input-dark mt-1 opacity-50 cursor-not-allowed text-sm md:text-base" value="${cls}" disabled></div>
-                                    
-                                    <div class="sm:col-span-2 border-t border-theme pt-4 mt-2">
-                                        <h4 class="text-[10px] md:text-xs font-bold text-main mb-3 uppercase tracking-wider">Guardian Info</h4>
-                                    </div>
-                                    <div><label class="text-[10px] uppercase font-bold text-muted">Parent/Guardian Name</label><input id="pf-parent" class="input-dark mt-1 text-sm md:text-base" value="${currentStudent.parentName || ''}"></div>
-                                    <div><label class="text-[10px] uppercase font-bold text-muted">Mobile Number</label><input id="pf-phone" class="input-dark mt-1 text-sm md:text-base" value="${currentStudent.contactPhone || ''}"></div>
-                                    <div class="sm:col-span-2"><label class="text-[10px] uppercase font-bold text-muted">Home Address</label><input id="pf-address" class="input-dark mt-1 text-sm md:text-base" value="${currentStudent.address || ''}"></div>
-
-                                    <div class="sm:col-span-2 border-t border-theme pt-4 mt-2">
-                                        <h4 class="text-[10px] md:text-xs font-bold text-main mb-3 uppercase tracking-wider text-red-400">Security</h4>
-                                        <div><label class="text-[10px] uppercase font-bold text-muted">Portal Password</label><input type="password" id="pf-pass" class="input-dark mt-1 text-sm md:text-base" value="${currentStudent.password || ''}" placeholder="Enter new password"></div>
-                                    </div>
-                                </div>
-                                <button onclick="updateProfile()" class="w-full btn-primary py-3.5 md:py-3 rounded-xl mt-4 text-sm md:text-base">Save Changes</button>
-                            </div>
-                        </div>`;
-                }
-            }
-        }
-
-        async function updateProfile() {
-            try {
-                showLoader(true);
-                const name = $('pf-name').value;
-                const dob = $('pf-dob').value;
-                const password = $('pf-pass').value;
-                const parentName = $('pf-parent').value;
-                const contactPhone = $('pf-phone').value;
-                const address = $('pf-address').value;
-                
-                if(!password) { showLoader(false); return showToast("Password cannot be empty", "error"); }
-
-                await db.collection('students').doc(currentStudent.id).update({ 
-                    name, dob, parentName, contactPhone, address, password 
-                });
-                showLoader(false);
-                showToast("Profile Updated Successfully");
-            } catch (e) { showLoader(false); showToast("Update failed", "error"); }
-        }
-
-        function openMarksheet(rid, isLiveUpdate = false) {
-            try {
-                activeResultId = rid;
-                const r = cache.results.find(x => x.id === rid);
-                
-                if(!r) {
-                    if(!isLiveUpdate) showToast("Result Not Found", "error");
-                    closeModal(); 
+                if(localData.results.length === 0) {
+                    container.innerHTML = `<div class="glass-panel p-8 text-center rounded-2xl"><i class="fas fa-box-open text-4xl text-muted mb-3"></i><p class="text-muted font-bold">No published results found.</p></div>`;
                     return;
                 }
 
-                const inst = currentInst || {name: 'Unknown School'};
-                const exam = cache.exams.find(e => e.id === r.examId) || {name: 'Unknown Exam'};
-                const cls = cache.classes.find(c => c.id === currentStudent.classId) || {name: 'N/A'};
-
-                const gradeScale = inst.customGradeScale || DEFAULT_SCALES[inst.gradeScale || 'standard'];
-                let legendStr = getGradeLegend(gradeScale);
-
-                let rows = ''; let maxTotal = 0; let grandTotal = 0; let failFlag = false;
-                const sMarks = r.subjectMarks || {};
-                
-                Object.entries(sMarks).forEach(([sid, marks]) => {
-                    const sub = cache.subjects.find(s => s.id === sid);
-                    if(sub) {
-                        const full = Number(sub.fullMarks) || 100;
-                        const pass = Number(sub.passMarks) || 33;
-                        
-                        let grade = '-';
-                        if(marks !== '') {
-                            grandTotal += Number(marks);
-                            maxTotal += full;
-                            if(Number(marks) < pass) failFlag = true;
-                            grade = getGrade((Number(marks) / full) * 100, gradeScale);
-                        }
-                        
-                        rows += `<tr><td class="text-left font-bold pl-6 text-slate-800">${sub.name}</td><td>${full}</td><td>${pass}</td><td class="font-bold ${marks !== '' ? (Number(marks) < pass ? 'text-red-600' : 'text-emerald-600') : 'text-slate-900'}">${marks}</td><td class="font-bold text-slate-700">${grade}</td></tr>`;
+                // Group by Academic Year
+                const grouped = {};
+                localData.results.forEach(r => {
+                    const exam = localData.exams.find(ex => ex.id === r.examId);
+                    if(exam) {
+                        const yr = exam.academicYear || 'General';
+                        if(!grouped[yr]) grouped[yr] = [];
+                        grouped[yr].push({ result: r, exam: exam });
                     }
                 });
-                
-                const finalPct = maxTotal > 0 ? ((grandTotal / maxTotal) * 100).toFixed(1) : 0;
-                const attVal = r.attendanceDays || r.attendance || '0';
-                const attTotal = r.totalDays || r.totalAttendance || '0';
-                const status = failFlag ? 'FAIL' : 'PASS';
-                const clsName = failFlag ? 'fail' : 'pass';
 
-                let finalGrade = getGrade(finalPct, gradeScale);
-                if(status === 'FAIL') finalGrade = 'F';
-                
-                let appreciation = "Good effort."; let motivation = "Keep working hard!";
-                if(status === 'FAIL') { appreciation = "You faced some challenges this term."; motivation = "Every setback is a setup for a comeback. We believe in you!"; } 
-                else if(finalPct >= 90) { appreciation = "Exceptional performance! Outstanding mastery."; motivation = "Your dedication is inspiring. Keep setting the bar high!"; }
-                else if(finalPct >= 80) { appreciation = "Excellent work! Strong grasp of concepts."; motivation = "Consistency is key. Continue this momentum."; }
-                else if(finalPct >= 60) { appreciation = "Very Good. Steady progress made."; motivation = "Believe in your potential, you can do even more."; }
+                let html = '';
+                Object.keys(grouped).sort().reverse().forEach(yr => {
+                    html += `<div class="mb-2 px-2 text-[10px] font-bold text-muted uppercase tracking-widest border-b border-theme pb-1">${yr}</div>`;
+                    grouped[yr].forEach(item => {
+                        const d = item.exam.publishDate ? new Date(item.exam.publishDate).toLocaleDateString() : '';
+                        
+                        let totalMax = 0; let totalScore = 0; let isFail = false;
+                        localData.subjects.forEach(sub => {
+                            const score = item.result.subjectMarks[sub.id];
+                            if(score !== undefined && score !== '') {
+                                totalMax += sub.fullMarks;
+                                totalScore += Number(score);
+                                if(Number(score) < sub.passMarks) isFail = true;
+                            }
+                        });
+                        const pct = totalMax > 0 ? ((totalScore/totalMax)*100).toFixed(1) : 0;
+                        const statusClass = isFail ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
 
-                // Inject full HTML structure perfectly into the printable container
-                $('mk-printable').innerHTML = `
-                    <div class="transcript-frame">
-                        <div class="watermark-layer">${inst.profileImage ? `<img src="${inst.profileImage}" crossorigin="anonymous" class="watermark-logo">` : ''}</div>
-                        <div class="transcript-inner">
-                            <div class="content-layer">
-                                <div class="text-center mb-6">
-                                    <div class="inline-block mb-2 p-1 border border-slate-200 rounded-full">
-                                        <div class="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden bg-slate-100">
-                                            ${inst.profileImage ? `<img src="${inst.profileImage}" crossorigin="anonymous" class="max-w-full max-h-full object-contain">` : `<i class="fas fa-university text-3xl text-slate-300"></i>`}
-                                        </div>
-                                    </div>
-                                    <h1 class="text-3xl font-black uppercase mk-header-font text-slate-900 tracking-wide mb-1">${inst.name}</h1>
-                                    <p class="text-xs text-slate-500 uppercase tracking-widest font-bold text-center">${inst.address || ''}</p>
-                                    <div class="mt-4 border-b border-slate-900 w-1/3 mx-auto"></div>
-                                    <p class="mt-1 text-sm font-serif italic text-slate-700 text-center">Official Statement of Marks</p>
-                                </div>
-                                <div class="info-grid flex justify-between mb-4 text-sm">
-                                    <div class="flex flex-col gap-2">
-                                        <div class="info-row"><span class="info-label font-bold text-slate-500 w-24 inline-block">Candidate</span><span class="info-val font-bold text-slate-900">${currentStudent.name}</span></div>
-                                        <div class="info-row"><span class="info-label font-bold text-slate-500 w-24 inline-block">ID No</span><span id="mk-adm" class="info-val font-mono font-bold text-slate-900">${currentStudent.admissionNo}</span></div>
-                                        <div class="info-row"><span class="info-label font-bold text-slate-500 w-24 inline-block">D.O.B</span><span class="info-val font-bold text-slate-900">${currentStudent.dob || 'N/A'}</span></div>
-                                    </div>
-                                    <div class="flex flex-col gap-2 text-right">
-                                        <div class="info-row"><span class="info-label font-bold text-slate-500 mr-2">Class</span><span class="info-val font-bold text-slate-900">${cls.name}</span></div>
-                                        <div class="info-row"><span class="info-label font-bold text-slate-500 mr-2">Exam</span><span class="info-val font-bold text-slate-900">${exam.name} <span class="text-xs text-slate-500 ml-1">[${exam.academicYear||''}]</span></span></div>
-                                        <div class="info-row"><span class="info-label font-bold text-slate-500 mr-2">Date</span><span class="info-val font-bold text-slate-900">${new Date().toLocaleDateString()}</span></div>
+                        html += `
+                        <div class="exam-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
+                            <div class="flex items-center gap-4 w-full sm:w-auto">
+                                <div class="w-12 h-12 rounded-xl bg-dark border border-theme flex items-center justify-center text-primary shrink-0"><i class="fas fa-file-alt text-xl"></i></div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-main text-base truncate">${item.exam.name}</h4>
+                                    <div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-muted">
+                                        <span><i class="fas fa-calendar-alt mr-1"></i>${d}</span> • 
+                                        <span class="px-2 py-0.5 rounded border ${statusClass}">${isFail ? 'FAIL' : 'PASS'}</span>
                                     </div>
                                 </div>
-                                <table class="mk-table mb-auto">
-                                    <thead><tr><th class="text-left pl-6">Subject</th><th width="15%">Max Marks</th><th width="15%">Pass Marks</th><th width="15%">Obtained</th><th width="15%">Grade</th></tr></thead>
-                                    <tbody>${rows || `<tr><td colspan="5" class="text-center py-4">No subjects found.</td></tr>`}</tbody>
-                                    <tfoot>
-                                        <tr class="bg-slate-100 text-slate-900"><td class="text-left font-black pl-6 text-sm uppercase tracking-widest">Grand Total</td><td colspan="2" class="text-center font-bold text-slate-500 text-xs uppercase">${numToWords(grandTotal)}</td><td class="text-center text-lg font-bold text-slate-900 py-3" colspan="2">${grandTotal} / ${maxTotal}</td></tr>
-                                    </tfoot>
-                                </table>
-                                ${legendStr ? `<div class="mt-4 mb-2 text-[8px] text-slate-500 font-mono text-center border-t border-slate-200 pt-2"><strong>GRADING LEGEND:</strong> ${legendStr}</div>` : ''}
-                                <div class="feedback-section flex justify-between mt-4 gap-4">
-                                    <div class="appreciation-box w-2/3 p-3 bg-slate-50 rounded border border-slate-200"><h4 class="font-bold text-xs uppercase text-slate-400 mb-1"><i class="fas fa-quote-left mr-2 opacity-50"></i>Insight</h4><p class="appr-text text-sm font-serif italic text-slate-700">"${appreciation}"</p><p class="motiv-text text-xs text-slate-500 mt-1">"${motivation}"</p></div>
-                                    <div class="stats-box w-1/3 p-3 bg-slate-100 rounded border border-slate-200 text-right">
-                                        <div class="stat-row mb-1"><span class="stat-label text-xs text-slate-500 mr-2">Percentage</span><span class="stat-val font-bold text-slate-900">${finalPct}%</span></div>
-                                        <div class="stat-row mb-1"><span class="stat-label text-xs text-slate-500 mr-2">Overall Grade</span><span class="stat-val text-sm font-bold text-slate-900">${finalGrade}</span></div>
-                                        <div class="stat-row mb-1"><span class="stat-label text-xs text-slate-500 mr-2">Attendance</span><span class="stat-val text-sm font-bold text-slate-900">${attVal}/${attTotal}</span></div>
-                                        <div class="stat-row mt-2"><span class="stat-label text-xs text-slate-500 mr-2">Result Status</span><div class="stamp-status ${clsName}">${status}</div></div>
+                            </div>
+                            <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t border-theme sm:border-none pt-3 sm:pt-0 mt-2 sm:mt-0">
+                                <div class="text-left sm:text-right">
+                                    <p class="text-[10px] font-bold text-muted uppercase">Score</p>
+                                    <p class="font-bold text-main text-lg leading-tight">${totalScore}<span class="text-xs text-muted font-normal">/${totalMax}</span></p>
+                                </div>
+                                <button onclick="openMarksheet('${item.exam.id}')" class="px-5 py-2.5 bg-dark hover:bg-slate-800 border border-theme rounded-xl text-xs font-bold text-main transition flex items-center gap-2 shadow-sm shrink-0"><i class="fas fa-eye text-primary"></i> View</button>
+                            </div>
+                        </div>`;
+                    });
+                });
+                container.innerHTML = html;
+            } else {
+                $('tab-results').classList.add('hidden');
+                $('tab-profile').classList.remove('hidden');
+            }
+        }
+
+        function openMarksheet(eid) {
+            const inst = currentInst; const cls = localData.classes; const exam = localData.exams.find(e => e.id === eid);
+            const r = localData.results.find(x => x.examId === eid);
+            const gradeScale = inst.customGradeScale || DEFAULT_SCALES[inst.gradeScale || 'standard'];
+            let legendStr = getGradeLegend(gradeScale);
+            
+            let total = 0, maxTotal = 0, rows = '';
+            localData.subjects.forEach(sub => {
+                const score = r.subjectMarks[sub.id];
+                if(score !== undefined && score !== '') {
+                    const numScore = Number(score);
+                    total += numScore; maxTotal += sub.fullMarks;
+                    const grade = getGrade((numScore / sub.fullMarks) * 100, gradeScale);
+                    rows += `<tr><td class="text-left font-bold pl-6 text-slate-800">${sub.name}</td><td>${sub.fullMarks}</td><td>${sub.passMarks}</td><td class="font-bold ${numScore < sub.passMarks ? 'text-red-600' : 'text-emerald-600'}">${numScore}</td><td class="font-bold text-slate-700">${grade}</td></tr>`;
+                }
+            });
+
+            const finalPct = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : 0;
+            let status = 'PASS'; localData.subjects.forEach(sub => { const s = r.subjectMarks[sub.id]; if(s !== undefined && s !== '' && Number(s) < sub.passMarks) status = 'FAIL'; });
+            const clsName = status === 'PASS' ? 'pass' : 'fail';
+            let finalGrade = getGrade(finalPct, gradeScale); if(status === 'FAIL') finalGrade = 'F';
+            
+            let appreciation = "Good effort."; let motivation = "Keep working hard!";
+            if(status === 'FAIL') { appreciation = "You faced some challenges this term."; motivation = "Every setback is a setup for a comeback. We believe in you!"; } 
+            else if(finalPct >= 90) { appreciation = "Exceptional performance! Outstanding mastery."; motivation = "Your dedication is inspiring. Keep setting the bar high!"; }
+            else if(finalPct >= 80) { appreciation = "Excellent work! Strong grasp of concepts."; motivation = "Consistency is key. Continue this momentum."; }
+            else if(finalPct >= 60) { appreciation = "Very Good. Steady progress made."; motivation = "Believe in your potential, you can do even more."; }
+
+            $('marksheet-modal').classList.remove('hidden');
+            
+            $('mk-printable').innerHTML = `
+                <div class="transcript-frame">
+                    <div class="watermark-layer">${inst.profileImage ? `<img src="${inst.profileImage}" crossorigin="anonymous" class="watermark-logo">` : ''}</div>
+                    <div class="transcript-inner">
+                        <div class="content-layer">
+                            <div class="text-center mb-6">
+                                <div class="inline-block mb-2 p-1 border border-slate-200 rounded-full">
+                                    <div class="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden bg-slate-100">
+                                        ${inst.profileImage ? `<img src="${inst.profileImage}" crossorigin="anonymous" class="max-w-full max-h-full object-contain">` : `<i class="fas fa-university text-3xl text-slate-300"></i>`}
                                     </div>
                                 </div>
-                                <div class="doc-footer border-t-2 border-slate-900 pt-6 mt-4 flex justify-between items-end">
-                                    <div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">This document is securely processed and digitally generated by <span class="dynamic-brand-name">easyresults</span> Cloud Systems.<br>Valid academic record. No physical signature required for web verification.</div>
-                                    <div class="principal-box text-center">
-                                        <div class="h-16 flex items-end justify-center mb-1">${inst.signatureImage ? `<img src="${inst.signatureImage}" crossorigin="anonymous" class="max-h-full max-w-full object-contain filter grayscale contrast-125">` : '<div class="h-8 border-b border-black w-32 mx-auto"></div>'}</div>
-                                        <div class="border-t-2 border-slate-900 w-32 mx-auto mb-1"></div>
-                                        <p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p>
-                                    </div>
+                                <h1 class="text-3xl font-black uppercase mk-header-font text-slate-900 tracking-wide mb-1">${inst.name}</h1>
+                                <p class="text-xs text-slate-500 uppercase tracking-widest font-bold text-center">${inst.address || ''}</p>
+                                <div class="mt-4 border-b border-slate-900 w-1/3 mx-auto"></div>
+                                <p class="mt-1 text-sm font-serif italic text-slate-700 text-center">Official Statement of Marks</p>
+                            </div>
+                            <div class="info-grid flex justify-between mb-4 text-sm">
+                                <div class="flex flex-col gap-2">
+                                    <div class="info-row"><span class="info-label font-bold text-slate-500 w-24 inline-block">Candidate</span><span class="info-val font-bold text-slate-900">${currentStudent.name}</span></div>
+                                    <div class="info-row"><span class="info-label font-bold text-slate-500 w-24 inline-block">ID No</span><span id="mk-adm" class="info-val font-mono font-bold text-slate-900">${currentStudent.admissionNo}</span></div>
+                                    <div class="info-row"><span class="info-label font-bold text-slate-500 w-24 inline-block">D.O.B</span><span class="info-val font-bold text-slate-900">${currentStudent.dob || 'N/A'}</span></div>
+                                </div>
+                                <div class="flex flex-col gap-2 text-right">
+                                    <div class="info-row"><span class="info-label font-bold text-slate-500 mr-2">Class</span><span class="info-val font-bold text-slate-900">${cls.name}</span></div>
+                                    <div class="info-row"><span class="info-label font-bold text-slate-500 mr-2">Exam</span><span class="info-val font-bold text-slate-900">${exam.name} <span class="text-xs text-slate-500 ml-1">[${exam.academicYear||''}]</span></span></div>
+                                    <div class="info-row"><span class="info-label font-bold text-slate-500 mr-2">Date</span><span class="info-val font-bold text-slate-900">${new Date().toLocaleDateString()}</span></div>
+                                </div>
+                            </div>
+                            <table class="mk-table mb-auto">
+                                <thead><tr><th class="text-left pl-6">Subject</th><th width="15%">Max Marks</th><th width="15%">Pass Marks</th><th width="15%">Obtained</th><th width="15%">Grade</th></tr></thead>
+                                <tbody>${rows || `<tr><td colspan="5" class="text-center py-4">No subjects found.</td></tr>`}</tbody>
+                                <tfoot>
+                                    <tr class="bg-slate-100 text-slate-900"><td class="text-left font-black pl-6 text-sm uppercase tracking-widest">Grand Total</td><td colspan="2" class="text-center font-bold text-slate-500 text-xs uppercase">${numToWords(total)}</td><td class="text-center text-lg font-bold text-slate-900 py-3" colspan="2">${total} / ${maxTotal}</td></tr>
+                                </tfoot>
+                            </table>
+                            ${legendStr ? `<div class="mt-4 mb-2 text-[8px] text-slate-500 font-mono text-center border-t border-slate-200 pt-2"><strong>GRADING LEGEND:</strong> ${legendStr}</div>` : ''}
+                            <div class="feedback-section flex justify-between mt-4 gap-4">
+                                <div class="appreciation-box w-2/3 p-3 bg-slate-50 rounded border border-slate-200"><h4 class="font-bold text-xs uppercase text-slate-400 mb-1"><i class="fas fa-quote-left mr-2 opacity-50"></i>Insight</h4><p class="appr-text text-sm font-serif italic text-slate-700">"${appreciation}"</p><p class="motiv-text text-xs text-slate-500 mt-1">"${motivation}"</p></div>
+                                <div class="stats-box w-1/3 p-3 bg-slate-100 rounded border border-slate-200 text-right">
+                                    <div class="stat-row mb-1"><span class="stat-label text-xs text-slate-500 mr-2">Percentage</span><span class="stat-val font-bold text-slate-900">${finalPct}%</span></div>
+                                    <div class="stat-row mb-1"><span class="stat-label text-xs text-slate-500 mr-2">Overall Grade</span><span class="stat-val text-sm font-bold text-slate-900">${finalGrade}</span></div>
+                                    <div class="stat-row mb-1"><span class="stat-label text-xs text-slate-500 mr-2">Attendance</span><span class="stat-val text-sm font-bold text-slate-900">${r.attendance||'-'}/${r.totalAttendance||'-'}</span></div>
+                                    <div class="stat-row mt-2"><span class="stat-label text-xs text-slate-500 mr-2">Result Status</span><div class="stamp-status ${clsName}">${status}</div></div>
+                                </div>
+                            </div>
+                            <div class="doc-footer border-t-2 border-slate-900 pt-6 mt-4 flex justify-between items-end">
+                                <div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">This document is securely processed and digitally generated by <span class="dynamic-brand-name">easyresults</span> Cloud Systems.<br>Valid academic record. No physical signature required for web verification.</div>
+                                <div class="principal-box text-center">
+                                    <div class="h-16 flex items-end justify-center mb-1">${inst.signatureImage ? `<img src="${inst.signatureImage}" crossorigin="anonymous" class="max-h-full max-w-full object-contain filter grayscale contrast-125">` : '<div class="h-8 border-b border-black w-32 mx-auto"></div>'}</div>
+                                    <div class="border-t-2 border-slate-900 w-32 mx-auto mb-1"></div>
+                                    <p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                `;
-
-                if(!isLiveUpdate) { $('marksheet-modal').classList.remove('hidden'); }
-                
-                setTimeout(() => {
-                    const ctr = document.getElementById('mk-printable');
-                    ctr.style.display = 'block'; 
-                    
-                    if(window.innerWidth < 800) {
-                        const padding = 16; 
-                        const availableWidth = window.innerWidth - (padding * 2);
-                        const scale = availableWidth / 794; 
-                        
-                        ctr.style.transform = `scale(${scale})`;
-                        ctr.style.transformOrigin = 'top left'; 
-                        ctr.style.marginLeft = `${padding}px`; 
-                        
-                        const heightLoss = 1122 * (1 - scale);
-                        ctr.style.marginBottom = `-${heightLoss}px`; 
-                    } else {
-                        ctr.style.display = 'inline-block';
-                        ctr.style.margin = '0 auto';
-                        ctr.style.transform = 'scale(0.8)';
-                        ctr.style.transformOrigin = 'top center';
-                        const heightLoss = 1122 * (1 - 0.8);
-                        ctr.style.marginBottom = `-${heightLoss}px`;
-                    }
-                }, 50);
-
-            } catch (err) { console.error(err); if(!isLiveUpdate) showToast("Error rendering marksheet", "error"); }
+                </div>
+            `;
+            
+            const ctr = document.getElementById('mk-printable');
+            ctr.style.display = 'block'; 
+            if(window.innerWidth < 800) {
+                const padding = 16; const availableWidth = window.innerWidth - (padding * 2);
+                const scale = availableWidth / 794; 
+                ctr.style.transform = `scale(${scale})`; ctr.style.transformOrigin = 'top left'; ctr.style.marginLeft = `${padding}px`; 
+                const heightLoss = 1122 * (1 - scale); ctr.style.marginBottom = `-${heightLoss}px`; 
+            } else {
+                ctr.style.display = 'inline-block'; ctr.style.margin = '0 auto'; ctr.style.transform = 'scale(0.8)'; ctr.style.transformOrigin = 'top center';
+                const heightLoss = 1122 * (1 - 0.8); ctr.style.marginBottom = `-${heightLoss}px`;
+            }
         }
 
-        function closeModal() { 
-            $('marksheet-modal').classList.add('hidden'); 
-            activeResultId = null; 
-        }
+        function closeMarksheet() { $('marksheet-modal').classList.add('hidden'); }
 
-        async function shareResult() {
-            try {
-                showLoader(true);
-                const element = document.getElementById('mk-printable');
-                const originalTransform = element.style.transform;
-                const originalMargin = element.style.marginBottom;
-                const originalMarginLeft = element.style.marginLeft;
-                
-                element.style.transform = 'scale(1)';
-                element.style.marginBottom = '0';
-                element.style.marginLeft = '0';
-                
-                const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-                
-                element.style.transform = originalTransform;
-                element.style.marginBottom = originalMargin;
-                element.style.marginLeft = originalMarginLeft;
-                
-                canvas.toBlob(async (blob) => {
-                    showLoader(false);
-                    const file = new File([blob], 'Result.png', { type: 'image/png' });
-                    if (navigator.share && navigator.canShare({ files: [file] })) {
-                        await navigator.share({ title: 'My Result', text: 'My Official Transcript', files: [file] });
-                    } else showToast("Sharing not supported on this device.", "error");
-                });
-            } catch (err) { showLoader(false); showToast("Share failed", "error"); }
+        function shareMarksheet() {
+            if(!currentStudent.contactPhone) return showToast("No registered phone number", "error");
+            const text = encodeURIComponent(`Hello! The latest academic result for ${currentStudent.name} has been published.\n\nYou can view and download the official PDF transcript by logging into the student portal: ${window.location.origin}${window.location.pathname.replace('student.html','')}home.html?id=${currentInst.id}`);
+            window.open(`https://wa.me/${currentStudent.contactPhone.replace(/\D/g, '')}?text=${text}`, '_blank');
         }
 
         function downloadPDF() {
             showLoader(true);
-            const { jsPDF } = window.jspdf;
-            const element = document.getElementById('mk-printable');
-            
-            const originalTransform = element.style.transform;
-            const originalMargin = element.style.marginBottom;
-            const originalMarginLeft = element.style.marginLeft;
-            
-            element.style.transform = 'scale(1)';
-            element.style.marginBottom = '0';
-            element.style.marginLeft = '0';
+            const { jsPDF } = window.jspdf; const element = document.getElementById('mk-printable'); 
+            const originalTransform = element.style.transform; const originalMargin = element.style.marginBottom; const originalMarginLeft = element.style.marginLeft;
+            element.style.transform = 'scale(1)'; element.style.marginBottom = '0'; element.style.marginLeft = '0';
             
             html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
-                element.style.transform = originalTransform; 
-                element.style.marginBottom = originalMargin;
-                element.style.marginLeft = originalMarginLeft;
-                
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                element.style.transform = originalTransform; element.style.marginBottom = originalMargin; element.style.marginLeft = originalMarginLeft;
+                const imgData = canvas.toDataURL('image/png'); const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
                 pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                 pdf.save(`${currentStudent.admissionNo}_Transcript.pdf`);
                 showLoader(false);
             }).catch(err => {
-                element.style.transform = originalTransform; 
-                element.style.marginBottom = originalMargin;
-                element.style.marginLeft = originalMarginLeft;
-                console.error(err);
-                showLoader(false);
-                showToast("PDF generation failed", "error");
+                element.style.transform = originalTransform; element.style.marginBottom = originalMargin; element.style.marginLeft = originalMarginLeft;
+                console.error(err); showLoader(false); showToast("PDF generation failed", "error");
             });
         }
     </script>

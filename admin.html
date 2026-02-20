@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Admin Console | easyresults</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020617">
+    <link rel="apple-touch-icon" href="logo.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="security.js"></script>
 
@@ -17,168 +21,47 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="config.js"></script>
     <script src="utils.js"></script>
 
     <style>
-        :root {
-            --bg-dark: #020617;
-            --bg-panel: rgba(15, 23, 42, 0.95);
-            --bg-input: rgba(30, 41, 59, 0.6);
-            --primary: #6366f1; 
-            --primary-glow: rgba(99, 102, 241, 0.5);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: rgba(255,255,255,0.08);
-            --safe-bottom: env(safe-area-inset-bottom);
-        }
-
-        .text-main { color: var(--text-main) !important; }
-        .text-muted { color: var(--text-muted) !important; }
-        .bg-dark { background-color: var(--bg-dark) !important; }
-        .bg-panel { background-color: var(--bg-panel) !important; }
-        .border-theme { border-color: var(--border) !important; }
-        
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: var(--bg-dark); 
-            color: var(--text-main); 
-            background-image: radial-gradient(at 0% 0%, var(--primary-glow) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
-            background-attachment: fixed;
-            transition: background-color 0.5s ease, color 0.5s ease;
-            overflow: hidden; 
-        }
-        
+        :root { --bg-dark: #020617; --bg-panel: rgba(15, 23, 42, 0.95); --bg-input: rgba(30, 41, 59, 0.6); --primary: #6366f1;  --primary-glow: rgba(99, 102, 241, 0.5); --text-main: #f8fafc; --text-muted: #94a3b8; --border: rgba(255,255,255,0.08); --safe-bottom: env(safe-area-inset-bottom); }
+        .text-main { color: var(--text-main) !important; } .text-muted { color: var(--text-muted) !important; } .bg-dark { background-color: var(--bg-dark) !important; } .bg-panel { background-color: var(--bg-panel) !important; } .border-theme { border-color: var(--border) !important; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-main); background-image: radial-gradient(at 0% 0%, var(--primary-glow) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%); background-attachment: fixed; transition: background-color 0.5s ease, color 0.5s ease; overflow: hidden; }
         .glass-panel { background: var(--bg-panel); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); transition: background 0.5s ease, border-color 0.5s ease; }
-        
         .input-field { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px 16px; border-radius: 10px; width: 100%; outline: none; transition: all 0.2s ease; font-size: 0.95rem; min-height: 44px; }
         .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
-        
+        .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background: linear-gradient(135deg, var(--primary), #4338ca); color: white !important; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 15px -3px var(--primary-glow); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; min-height: 44px; }
         .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.1); }
-        
         .btn-secondary { background: rgba(125,125,125,0.1); color: var(--text-main); border: 1px solid var(--border); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; }
         .btn-secondary:hover { background: rgba(125,125,125,0.2); border-color: var(--primary); }
-
         .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 6px; border-radius: 10px; color: var(--text-muted); transition: all 0.2s; cursor: pointer; font-weight: 500; border: 1px solid transparent; overflow: hidden; white-space: nowrap; }
         .nav-item:hover { background: rgba(125,125,125,0.1); color: var(--text-main); }
         .nav-item.active { background: var(--primary-glow); color: var(--text-main); border-color: var(--primary); }
-        
-        @media (min-width: 1025px) {
-            .sidebar.collapsed { width: 5.5rem; }
-            .sidebar.collapsed .sidebar-text, .sidebar.collapsed .sidebar-header-text { display: none; }
-            .sidebar.collapsed .nav-item { justify-content: center; padding: 12px 0; }
-            .sidebar.collapsed .nav-item i { margin-right: 0; font-size: 1.25rem; }
-            .sidebar.collapsed .sidebar-logo-container { width: 40px; height: 40px; margin: 0 auto; }
-        }
-
+        @media (min-width: 1025px) { .sidebar.collapsed { width: 5.5rem; } .sidebar.collapsed .sidebar-text, .sidebar.collapsed .sidebar-header-text { display: none; } .sidebar.collapsed .nav-item { justify-content: center; padding: 12px 0; } .sidebar.collapsed .nav-item i { margin-right: 0; font-size: 1.25rem; } .sidebar.collapsed .sidebar-logo-container { width: 40px; height: 40px; margin: 0 auto; } }
         .me-container { border: 1px solid var(--border); border-radius: 16px; background: var(--bg-panel); backdrop-filter: blur(20px); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .me-table th { text-transform: uppercase; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text-muted); padding: 1.25rem 1rem; border-bottom: 2px solid var(--border); background: rgba(0,0,0,0.3); cursor: pointer; user-select: none; white-space: nowrap; }
         .me-table th:hover { color: var(--text-main); background: rgba(125,125,125,0.1); }
         .me-table td { border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; position: relative; vertical-align: middle; }
-        
         .row-status { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; transition: 0.3s; }
-        .rs-pass { background: #10b981; box-shadow: 4px 0 15px -2px rgba(16, 185, 129, 0.4); }
-        .rs-fail { background: #ef4444; box-shadow: 4px 0 15px -2px rgba(239, 68, 68, 0.4); }
-        .rs-neutral { background: transparent; }
-
+        .rs-pass { background: #10b981; box-shadow: 4px 0 15px -2px rgba(16, 185, 129, 0.4); } .rs-fail { background: #ef4444; box-shadow: 4px 0 15px -2px rgba(239, 68, 68, 0.4); } .rs-neutral { background: transparent; }
         .mark-wrapper { position: relative; display: flex; align-items: center; justify-content: center; }
         .mark-input { background: rgba(0, 0, 0, 0.1); border: 1px solid var(--border); color: var(--text-main); text-align: center; width: 64px; padding: 10px 4px; border-radius: 8px; outline: none; font-weight: 600; font-family: 'Inter', sans-serif; transition: all 0.2s; }
         .mark-input:focus { background: var(--primary-glow); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); transform: translateY(-1px); }
         .mark-input.fail-mark { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-        .att-input { border-color: rgba(251, 191, 36, 0.4); color: #fbbf24 !important; }
-        .att-input:focus { border-color: #fbbf24; background: rgba(251, 191, 36, 0.1); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2); }
-
-        .stat-group { display: flex; flex-direction: column; align-items: flex-start; }
-        .stat-label { font-size: 0.6rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; letter-spacing: 1px; margin-bottom: 2px; }
-        .stat-val { font-size: 1.25rem; font-weight: 700; color: var(--text-main); font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; }
-
-        .fade-in { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(15px); }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        
-        #global-loader { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark); }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        
+        .att-input { border-color: rgba(251, 191, 36, 0.4); color: #fbbf24 !important; } .att-input:focus { border-color: #fbbf24; background: rgba(251, 191, 36, 0.1); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2); }
+        .stat-group { display: flex; flex-direction: column; align-items: flex-start; } .stat-label { font-size: 0.6rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; letter-spacing: 1px; margin-bottom: 2px; } .stat-val { font-size: 1.25rem; font-weight: 700; color: var(--text-main); font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; }
+        .fade-in { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(15px); } @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        #global-loader { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; } .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: var(--bg-dark); } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         .a4-container { width: 210mm; min-height: 297mm; background: #fff; color: #1e293b; font-family: 'Inter', sans-serif; transform: scale(0.65); transform-origin: top left; margin: 0 auto; display: flex; flex-direction: column; }
         .transcript-frame { border: 8px solid #1e293b; outline: 2px solid #94a3b8; outline-offset: -12px; height: 100%; min-height: 290mm; margin: 8mm; position: relative; display: flex; flex-direction: column; background: #fff; }
         .transcript-inner { padding: 8mm 12mm; height: 100%; display: flex; flex-direction: column; background-image: radial-gradient(#f1f5f9 1px, transparent 1px); background-size: 25px 25px; }
-        .mk-serif { font-family: 'Playfair Display', serif; }
-        .mk-header-font { font-family: 'Cinzel', serif; }
-        .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-        .mk-table th { background: #f8fafc; color:#334155; padding: 10px; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; }
-        .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: center; }
-        .stamp-status { padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; font-weight: 800; text-transform: uppercase; display: inline-block; font-size: 0.85rem; }
-        .pass { color: #059669; border-color: #059669; background: #ecfdf5; } .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
-
-        /* --- MOBILE & RESPONSIVE FIXES --- */
-        @media (max-width: 1024px) {
-            .sidebar { 
-                position: fixed !important; 
-                top: 0; 
-                left: 0; 
-                height: 100%; 
-                width: 280px; 
-                transform: translateX(-100%); 
-                background: var(--bg-dark); 
-                border-right: 1px solid var(--border); 
-                box-shadow: 10px 0 30px rgba(0,0,0,0.5); 
-                z-index: 100;
-            }
-            .sidebar.open { transform: translateX(0); }
-
-            #view-dashboard { flex-direction: column; }
-            main { width: 100% !important; max-width: 100% !important; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; }
-            #content-area { width: 100%; max-width: 100%; overflow-x: hidden; padding: 1rem; padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
-
-            .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 90; }
-            .overlay.open { display: block; }
-
-            .me-table thead { display: none; } 
-            .me-table, .me-table tbody, .me-table tr, .me-table td { display: block; width: 100%; }
-            
-            .me-table tr { 
-                margin-bottom: 1rem; 
-                border: 1px solid var(--border); 
-                border-radius: 12px; 
-                background: rgba(255,255,255,0.03); 
-                padding: 1rem; 
-                position: relative; 
-            }
-            
-            .me-table td { 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                padding: 10px 0; 
-                border-bottom: 1px dashed var(--border); 
-                text-align: right; 
-                background: transparent !important;
-            }
-            .me-table td:last-child { border-bottom: none; }
-            
-            .me-table td::before { 
-                content: attr(data-label); 
-                font-size: 0.7rem; 
-                font-weight: 700; 
-                text-transform: uppercase; 
-                color: var(--text-muted); 
-                text-align: left; 
-                margin-right: 10px;
-            }
-            
-            .mark-input { width: 80px; height: 44px; font-size: 1.1rem; }
-            
-            #modal-content-wrapper { 
-                position: fixed; bottom: 0; left: 0; width: 100%; max-width: 100%; 
-                border-radius: 20px 20px 0 0; max-height: 85vh; 
-                animation: slideUp 0.3s ease-out;
-            }
-        }
-
+        .mk-serif { font-family: 'Playfair Display', serif; } .mk-header-font { font-family: 'Cinzel', serif; } .mk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; } .mk-table th { background: #f8fafc; color:#334155; padding: 10px; border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; } .mk-table td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: center; }
+        .stamp-status { padding: 0.25rem 1rem; border: 2px solid; border-radius: 6px; font-weight: 800; text-transform: uppercase; display: inline-block; font-size: 0.85rem; } .pass { color: #059669; border-color: #059669; background: #ecfdf5; } .fail { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
+        @media (max-width: 1024px) { .sidebar { position: fixed !important; top: 0; left: 0; height: 100%; width: 280px; transform: translateX(-100%); background: var(--bg-dark); border-right: 1px solid var(--border); box-shadow: 10px 0 30px rgba(0,0,0,0.5); z-index: 100; } .sidebar.open { transform: translateX(0); } #view-dashboard { flex-direction: column; } main { width: 100% !important; max-width: 100% !important; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; } #content-area { width: 100%; max-width: 100%; overflow-x: hidden; padding: 1rem; padding-bottom: calc(2rem + env(safe-area-inset-bottom)); } .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 90; } .overlay.open { display: block; } .me-table thead { display: none; } .me-table, .me-table tbody, .me-table tr, .me-table td { display: block; width: 100%; } .me-table tr { margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.03); padding: 1rem; position: relative; } .me-table td { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border); text-align: right; background: transparent !important; } .me-table td:last-child { border-bottom: none; } .me-table td::before { content: attr(data-label); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); text-align: left; margin-right: 10px; } .mark-input { width: 80px; height: 44px; font-size: 1.1rem; } #modal-content-wrapper { position: fixed; bottom: 0; left: 0; width: 100%; max-width: 100%; border-radius: 20px 20px 0 0; max-height: 85vh; animation: slideUp 0.3s ease-out; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     </style>
 </head>
@@ -342,9 +225,11 @@
         const SESSION_KEY = 'easyresults_admin_session';
         let currentUser = null;
         let activeChart = null;
-        let localState = { students: [], classes: [], exams: [], results: [], subjects: [], staff: [] };
+        let localState = { classes: [], exams: [], results: [], subjects: [], staff: [], students: [] };
+        
+        let lastStudentDoc = null;
+        let hasMoreStudents = true;
         let currentSort = { key: 'rank', order: 'asc' };
-
         let draftGradeScale = [];
 
         function toggleSidebar() { 
@@ -373,44 +258,46 @@
             const pass = $('login-pass').value;
 
             try {
-                // 1. Check if it's the Main Admin
-                let snap = await db.collection('institutions').where('email', '==', email).where('pass', '==', pass).get();
-                if(!snap.empty) {
-                    const doc = snap.docs[0];
-                    if(doc.data().isActive === false) return showToast("Account Suspended", "error");
-                    currentUser = { id: doc.id, role: 'admin', ...doc.data() };
-                    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-                    initDashboard();
-                    return;
-                }
+                // PHASE 1 SECURITY: Authenticate against Firebase Auth securely
+                const userCred = await auth.signInWithEmailAndPassword(email, pass);
+                const uid = userCred.user.uid;
 
-                // 2. Check if it's a Teacher / Staff
-                snap = await db.collection('staff').where('email', '==', email).where('password', '==', pass).get();
-                if(!snap.empty) {
-                    const staffDoc = snap.docs[0];
-                    const instDoc = await db.collection('institutions').doc(staffDoc.data().institutionId).get();
+                // 1. Check if UID belongs to an Admin (Institution)
+                let instDoc = await db.collection('institutions').doc(uid).get();
+                
+                if (instDoc.exists) {
+                    if(instDoc.data().isActive === false) throw new Error("Account Suspended by Owner");
+                    currentUser = { id: uid, role: 'admin', ...instDoc.data() };
+                } else {
+                    // 2. Check if UID belongs to a Teacher (Staff)
+                    let staffSnap = await db.collection('staff').where('authUid', '==', uid).get();
                     
-                    if(!instDoc.exists || instDoc.data().isActive === false) {
-                        showToast("Institution Suspended", "error");
-                        btn.innerText = "Access Dashboard";
-                        return;
+                    if (!staffSnap.empty) {
+                        const staffDoc = staffSnap.docs[0];
+                        const schoolDoc = await db.collection('institutions').doc(staffDoc.data().institutionId).get();
+                        
+                        if(!schoolDoc.exists || schoolDoc.data().isActive === false) throw new Error("Institution is Suspended");
+                        
+                        currentUser = { 
+                            id: schoolDoc.id, 
+                            staffId: staffDoc.id,
+                            role: 'teacher', 
+                            staffName: staffDoc.data().name,
+                            ...schoolDoc.data() 
+                        };
+                    } else {
+                        throw new Error("No admin or staff profile found.");
                     }
-                    
-                    currentUser = { 
-                        id: instDoc.id, 
-                        staffId: staffDoc.id,
-                        role: 'teacher', 
-                        staffName: staffDoc.data().name,
-                        ...instDoc.data() 
-                    };
-                    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-                    initDashboard();
-                    return;
                 }
 
-                showToast("Invalid Credentials", "error"); 
-                btn.innerText = "Access Dashboard";
-            } catch(e) { console.error(e); showToast("Network Error", "error"); btn.innerText = "Access Dashboard"; }
+                localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+                initDashboard();
+
+            } catch(e) { 
+                console.error(e); 
+                showToast("Invalid Credentials or Account Suspended", "error"); 
+                btn.innerText = "Access Dashboard"; 
+            }
         }
 
         function checkSession() {
@@ -467,6 +354,8 @@
         function logout() { 
             const instId = currentUser ? currentUser.id : null;
             if(instId) localStorage.setItem('easyresults_last_school', instId);
+            
+            auth.signOut();
             localStorage.removeItem(SESSION_KEY); 
             
             const lastSchool = localStorage.getItem('easyresults_last_school');
@@ -478,19 +367,15 @@
 
         async function refreshData() {
             try {
-                const [c, s, e, r, sub, stf] = await Promise.all([
+                const [c, e, sub, stf] = await Promise.all([
                     db.collection('classes').where('institutionId', '==', currentUser.id).get(),
-                    db.collection('students').where('institutionId', '==', currentUser.id).get(),
                     db.collection('exams').where('institutionId', '==', currentUser.id).get(),
-                    db.collection('results').where('institutionId', '==', currentUser.id).get(),
                     db.collection('subjects').where('institutionId', '==', currentUser.id).get(),
                     db.collection('staff').where('institutionId', '==', currentUser.id).get()
                 ]);
                 
                 localState.classes = c.docs.map(d => ({id: d.id, ...d.data()}));
-                localState.students = s.docs.map(d => ({id: d.id, ...d.data()}));
                 localState.exams = e.docs.map(d => ({id: d.id, ...d.data()}));
-                localState.results = r.docs.map(d => ({id: d.id, ...d.data()}));
                 localState.subjects = sub.docs.map(d => ({id: d.id, ...d.data()}));
                 localState.staff = stf.docs.map(d => ({id: d.id, ...d.data()}));
             } catch(e) { console.error("Sync Error", e); }
@@ -514,9 +399,18 @@
             if(tab === 'overview') {
                 title.innerText = 'Overview';
                 await refreshData();
-                const sCount = localState.students.length;
+                
+                showLoader(true);
+                const sCountSnap = await db.collection('students').where('institutionId', '==', currentUser.id).count().get();
+                const sCount = sCountSnap.data().count;
                 const cCount = localState.classes.length;
                 const eCount = localState.exams.length;
+
+                const chartData = await Promise.all(localState.classes.map(c => 
+                    db.collection('students').where('classId', '==', c.id).count().get()
+                ));
+                const chartValues = chartData.map(snap => snap.data().count);
+                showLoader(false);
 
                 content.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8 fade-in">
@@ -532,7 +426,7 @@
                     type: 'bar',
                     data: {
                         labels: localState.classes.map(c=>c.name),
-                        datasets: [{ label: 'Students', data: localState.classes.map(c=>localState.students.filter(s=>s.classId===c.id).length), backgroundColor: currentUser.themeColor || '#6366f1', borderRadius: 6 }]
+                        datasets: [{ label: 'Students', data: chartValues, backgroundColor: currentUser.themeColor || '#6366f1', borderRadius: 6 }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(125,125,125,0.1)' }, ticks: { color: 'var(--text-muted)' } }, x: { grid: { display: false }, ticks: { color: 'var(--text-muted)' } } } }
                 });
@@ -611,29 +505,19 @@
                             <button onclick="openRegisterModal()" class="btn-primary w-full sm:w-auto"><i class="fas fa-plus"></i> Register Student</button>
                             <div class="flex gap-2 w-full sm:w-auto">
                                 <button onclick="downloadStudentTemplate()" class="btn-secondary flex-1 sm:w-auto text-xs"><i class="fas fa-download mr-1"></i> Template</button>
-                                <button onclick="exportStudents()" class="btn-secondary flex-1 sm:w-auto text-xs"><i class="fas fa-file-export mr-1"></i> Export</button>
+                                <button onclick="exportStudents()" class="btn-secondary flex-1 sm:w-auto text-xs"><i class="fas fa-file-export mr-1"></i> Export Data</button>
                             </div>
-                            <div class="w-full sm:w-auto">
-                                <input type="file" id="s-file" class="hidden" accept=".xlsx,.csv" onchange="bulkImport()">
-                                <button onclick="$('s-file').click()" class="btn-secondary w-full sm:w-auto text-xs"><i class="fas fa-upload mr-1"></i> Import Excel</button>
                             </div>
-                        </div>
                     </div>
                     
                     <div class="glass-panel rounded-2xl overflow-hidden flex flex-col fade-in shadow-xl w-full h-fit">
                         <div class="p-3 lg:p-4 border-b border-theme bg-panel flex flex-col md:flex-row gap-3 items-center justify-between">
                             <div class="flex items-center gap-3 w-full md:w-auto flex-1">
                                 <i class="fas fa-search text-muted pl-2"></i>
-                                <input id="s-search" onkeyup="renderStudentList()" class="input-field bg-transparent border-none shadow-none focus:ring-0 p-0 w-full min-h-[30px]" placeholder="Search name, adm no, or parent...">
+                                <input id="s-search" onkeyup="if(event.key === 'Enter') { resetPagination(); fetchStudents(); }" class="input-field bg-transparent border-none shadow-none focus:ring-0 p-0 w-full min-h-[30px]" placeholder="Search by Admission No (Press Enter)...">
                             </div>
                             <div class="flex gap-2 w-full md:w-auto">
-                                <select id="s-filter-class" onchange="renderStudentList()" class="input-field w-1/2 sm:w-auto text-xs py-2"><option value="">All Classes</option>${opts}</select>
-                                <select id="s-sort" onchange="renderStudentList()" class="input-field w-1/2 sm:w-auto text-xs py-2">
-                                    <option value="name_asc">Name (A-Z)</option>
-                                    <option value="name_desc">Name (Z-A)</option>
-                                    <option value="adm_asc">Adm No (Asc)</option>
-                                    <option value="adm_desc">Adm No (Desc)</option>
-                                </select>
+                                <select id="s-filter-class" onchange="resetPagination(); fetchStudents();" class="input-field w-full sm:w-auto text-xs py-2 cursor-pointer"><option value="">All Classes</option>${opts}</select>
                             </div>
                             ${!isTeacher ? `<button onclick="openPromoteModal()" id="btn-promote" class="hidden w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition min-h-[44px]">Promote</button>` : ''}
                         </div>
@@ -641,9 +525,13 @@
                             ${!isTeacher ? `<input type="checkbox" id="check-all" class="rounded bg-dark border-theme" onchange="toggleSelectAll(this)"> <span>Select All</span>` : `<span>Student Name</span>`}
                         </div>
                         <div class="p-0 bg-panel/30 w-full" id="student-list"></div>
+                        <div class="p-4 border-t border-theme text-center bg-panel/50">
+                            <button id="btn-load-more" onclick="fetchStudents(true)" class="px-6 py-2 bg-dark hover:bg-slate-800 border border-theme text-muted hover:text-main rounded-xl text-xs font-bold transition hidden shadow-sm"><i class="fas fa-chevron-down mr-2"></i> Load More Students</button>
+                        </div>
                     </div>
                 `;
-                renderStudentList();
+                resetPagination();
+                fetchStudents();
             }
 
             if(tab === 'exams') {
@@ -714,6 +602,7 @@
                 title.innerText = 'School Profile';
                 const i = currentUser;
                 const currentTemplate = i.gradeScale || 'standard';
+                const hasAccess = i.hasFullAccess === true;
                 
                 if(i.customGradeScale) { draftGradeScale = JSON.parse(JSON.stringify(i.customGradeScale)); } 
                 else { draftGradeScale = JSON.parse(JSON.stringify(DEFAULT_SCALES[currentTemplate])); }
@@ -780,16 +669,17 @@
                                 <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Phone</label><input id="set-phone" class="input-field mt-1" value="${i.contactPhone||''}"></div>
                                 <div class="sm:col-span-2"><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Address</label><input id="set-addr" class="input-field mt-1" value="${i.address||''}"></div>
                                 
-                                <div class="opacity-50 grayscale pointer-events-none">
-                                    <label class="text-[10px] md:text-xs font-bold text-muted uppercase flex items-center gap-2">School Logo URL <i class="fas fa-lock text-yellow-500"></i></label>
-                                    <input type="url" id="set-logo" class="input-field mt-1 text-sm" value="${i.profileImage||''}" placeholder="Locked" disabled>
+                                <div class="${!hasAccess ? 'opacity-50 grayscale pointer-events-none' : ''}">
+                                    <label class="text-[10px] md:text-xs font-bold text-muted uppercase flex items-center gap-2">School Logo URL ${!hasAccess ? '<i class="fas fa-lock text-yellow-500"></i>' : ''}</label>
+                                    <input type="url" id="set-logo" class="input-field mt-1 text-sm" value="${i.profileImage||''}" placeholder="https://..." ${!hasAccess ? 'disabled' : ''}>
                                 </div>
-                                <div class="opacity-50 grayscale pointer-events-none">
-                                    <label class="text-[10px] md:text-xs font-bold text-muted uppercase flex items-center gap-2">Principal Signature URL <i class="fas fa-lock text-yellow-500"></i></label>
-                                    <input type="url" id="set-sig" class="input-field mt-1 text-sm" value="${i.signatureImage||''}" placeholder="Locked" disabled>
+                                <div class="${!hasAccess ? 'opacity-50 grayscale pointer-events-none' : ''}">
+                                    <label class="text-[10px] md:text-xs font-bold text-muted uppercase flex items-center gap-2">Principal Signature URL ${!hasAccess ? '<i class="fas fa-lock text-yellow-500"></i>' : ''}</label>
+                                    <input type="url" id="set-sig" class="input-field mt-1 text-sm" value="${i.signatureImage||''}" placeholder="https://..." ${!hasAccess ? 'disabled' : ''}>
                                 </div>
                                 
-                                <div class="sm:col-span-2 text-[13px] font-bold text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl mt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                ${!hasAccess ? `
+                                <div class="sm:col-span-2 text-[10px] font-bold text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl mt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <div class="flex items-start sm:items-center gap-2">
                                         <i class="fas fa-shield-alt text-lg mt-0.5 sm:mt-0"></i> 
                                         <span>School branding assets are locked for security. Contact easyresults support to update your Logo and Principal Signature.</span>
@@ -797,7 +687,7 @@
                                     <button onclick="contactSupport()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition text-xs font-bold flex items-center gap-2 shrink-0 border border-green-500 w-full sm:w-auto justify-center shadow-lg shadow-green-900/20">
                                         <i class="fab fa-whatsapp text-sm"></i> Chat Support
                                     </button>
-                                </div>
+                                </div>` : ''}
                             </div>
                         </div>
                         <button onclick="saveSettings()" class="w-full btn-primary py-4 rounded-xl shadow-lg">Save & Update Profile</button>
@@ -805,12 +695,6 @@
 
                 setTimeout(renderGradeScaleEditor, 0);
             }
-        }
-
-        function contactSupport() {
-            if(!supportWhatsapp) return showToast("Support contact not configured by owner.", "error");
-            const text = encodeURIComponent(`Hello Support, I need help updating the Logo/Signature for my institution: ${currentUser.name} (ID: ${currentUser.id}).`);
-            window.open(`https://wa.me/${supportWhatsapp}?text=${text}`, '_blank');
         }
 
         // --- CUSTOM GRADE SCALE EDITOR LOGIC ---
@@ -880,7 +764,7 @@
                             <div class="sm:col-span-2"><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Home Address</label><input id="s-address" class="input-field text-sm" placeholder="Full Address"></div>
                         </div>
                     </div>
-                    <button onclick="addStudent()" class="w-full btn-primary mt-4 py-3">Complete Registration</button>
+                    <button onclick="addStudent()" class="w-full btn-primary mt-4 py-3"><i class="fas fa-shield-alt mr-2"></i> Register Securely</button>
                 </div>`;
         }
 
@@ -899,13 +783,9 @@
                 html = `<div class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Full Name</label><input id="edit-val-name" class="input-field text-sm" value="${item.name}"></div>
-                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Admission No</label><input id="edit-val-adm" class="input-field text-sm" value="${item.admissionNo}"></div>
+                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase flex items-center gap-2">Admission No <i class="fas fa-lock text-yellow-500" title="Locked by Auth"></i></label><input id="edit-val-adm" class="input-field text-sm bg-dark" value="${item.admissionNo}" disabled></div>
                         <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Date of Birth</label><input id="edit-val-dob" type="date" class="input-field text-muted text-sm" value="${item.dob || ''}"></div>
                         <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Class</label><select id="edit-val-class" class="input-field text-muted text-sm">${classOpts}</select></div>
-                    </div>
-                    <div class="border-t border-theme pt-4 mt-2">
-                        <h4 class="text-[10px] md:text-xs font-bold text-main mb-3 uppercase tracking-wider text-red-400">Security</h4>
-                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Student Password</label><input id="edit-val-pass" class="input-field text-sm" value="${item.password || ''}"></div>
                     </div>
                     <div class="border-t border-theme pt-4 mt-2">
                         <h4 class="text-[10px] md:text-xs font-bold text-main mb-3 uppercase tracking-wider">Guardian Details</h4>
@@ -921,10 +801,9 @@
             else if(type === 'staff') {
                 html = `<div class="space-y-4">
                     <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Full Name</label><input id="edit-val-name" class="input-field text-sm" value="${item.name}"></div>
-                    <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Email (Login ID)</label><input id="edit-val-email" type="email" class="input-field text-sm" value="${item.email}"></div>
-                    <div class="border-t border-theme pt-4 mt-2">
-                        <h4 class="text-[10px] md:text-xs font-bold text-main mb-3 uppercase tracking-wider text-red-400">Security</h4>
-                        <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase">Staff Password</label><input id="edit-val-pass" class="input-field text-sm" value="${item.password || ''}"></div>
+                    <div><label class="text-[10px] md:text-xs font-bold text-muted uppercase flex items-center gap-2">Email (Login ID) <i class="fas fa-lock text-yellow-500" title="Locked by Auth"></i></label><input id="edit-val-email" type="email" class="input-field text-sm bg-dark" value="${item.email}" disabled></div>
+                    <div class="text-[10px] text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700 mt-4">
+                        <i class="fas fa-shield-alt text-blue-400 mr-1"></i> Passwords are encrypted by Google. Staff can reset passwords from the login page.
                     </div>
                     <button onclick="saveEdit('${type}', '${id}')" class="w-full btn-primary mt-4">Save Changes</button>
                 </div>`;
@@ -950,57 +829,65 @@
             
             if(type === 'classes') updateData = { name: $('edit-val-name').value };
             else if(type === 'students') {
-                const newAdm = $('edit-val-adm').value;
-                if(localState.students.some(s => s.admissionNo === newAdm && s.id !== id)) {
-                    showLoader(false); return showToast("Admission No already exists", "error");
-                }
                 updateData = { 
                     name: $('edit-val-name').value, 
-                    admissionNo: newAdm, 
                     dob: $('edit-val-dob').value, 
                     classId: $('edit-val-class').value,
-                    password: $('edit-val-pass').value,
                     parentName: $('edit-val-parent').value,
                     contactPhone: $('edit-val-phone').value,
                     address: $('edit-val-address').value
                 };
             }
             else if(type === 'staff') {
-                updateData = { 
-                    name: $('edit-val-name').value, 
-                    email: $('edit-val-email').value, 
-                    password: $('edit-val-pass').value 
-                };
+                updateData = { name: $('edit-val-name').value };
             }
             else if(type === 'exams') { const d = $('edit-val-date').value; updateData = { name: $('edit-val-name').value, academicYear: $('edit-val-year').value, publishDate: d ? new Date(d).toISOString() : new Date().toISOString() }; }
             else if(type === 'subjects') updateData = { name: $('edit-sub-name').value, fullMarks: Number($('edit-sub-full').value), passMarks: Number($('edit-sub-pass').value) };
             
             await db.collection(type).doc(id).update(updateData);
-            await refreshData(); $('modal-overlay').classList.add('hidden'); showLoader(false); showToast("Updated Successfully");
-            if(type === 'subjects') manageSubjects($('edit-sub-cid').value); else await renderTab(type);
+            $('modal-overlay').classList.add('hidden'); 
+            showLoader(false); 
+            showToast("Updated Successfully");
+            
+            if(type === 'subjects') manageSubjects($('edit-sub-cid').value); 
+            else await renderTab(type);
         }
 
-        function closeModal() { 
-            $('modal-overlay').classList.add('hidden'); 
-            $('marksheet-modal').classList.add('hidden'); 
-        }
+        function closeModal() { $('modal-overlay').classList.add('hidden'); $('marksheet-modal').classList.add('hidden'); }
 
         async function addClass() { const n = $('new-class').value; if(n) { showLoader(true); await db.collection('classes').add({ institutionId: currentUser.id, name: n, createdAt: new Date().toISOString() }); await renderTab('classes'); showLoader(false); showToast("Class Added"); } }
         
         async function addStudent() {
             const n=$('s-name').value, a=$('s-adm').value, c=$('s-class').value, d=$('s-dob').value;
             const pName=$('s-parent').value, phone=$('s-phone').value, addr=$('s-address').value;
+            
             if(n&&a&&c) { 
                 showLoader(true); 
-                if(localState.students.some(s => s.admissionNo === a)) { showLoader(false); return showToast("Admission No exists", "error"); } 
-                await db.collection('students').add({ 
-                    institutionId: currentUser.id, 
-                    name: n, admissionNo: a, classId: c, dob: d, password: a,
-                    parentName: pName, contactPhone: phone, address: addr
-                }); 
-                await renderTab('students');
-                closeModal();
-                showLoader(false); showToast("Student Added"); 
+                const snap = await db.collection('students').where('institutionId', '==', currentUser.id).where('admissionNo', '==', a).get();
+                if(!snap.empty) { showLoader(false); return showToast("Admission No exists", "error"); } 
+                
+                try {
+                    // PHASE 1 SECURITY: Generate a dummy email so Firebase Auth works with Admission Numbers
+                    const safeAdm = a.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                    const dummyEmail = `${safeAdm}@${currentUser.id.toLowerCase()}.edu`;
+                    
+                    const userCred = await secondaryAuth.createUserWithEmailAndPassword(dummyEmail, a); // Default pass is Adm No
+
+                    await db.collection('students').doc(userCred.user.uid).set({ 
+                        institutionId: currentUser.id, 
+                        authUid: userCred.user.uid,
+                        dummyEmail: dummyEmail,
+                        name: n, admissionNo: a, classId: c, dob: d,
+                        parentName: pName, contactPhone: phone, address: addr
+                    }); 
+                    
+                    await renderTab('students');
+                    closeModal();
+                    showToast("Student Registered Securely"); 
+                } catch(err) {
+                    showToast(err.message, "error");
+                }
+                showLoader(false); 
             } else {
                 showToast("Name, Adm No and Class are required", "error");
             }
@@ -1010,12 +897,22 @@
             const n=$('st-name').value, e=$('st-email').value, p=$('st-pass').value;
             if(n&&e&&p) {
                 showLoader(true);
-                await db.collection('staff').add({
-                    institutionId: currentUser.id,
-                    name: n, email: e, password: p, createdAt: new Date().toISOString()
-                });
-                await renderTab('staff');
-                showLoader(false); showToast("Teacher Added");
+                try {
+                    // PHASE 1 SECURITY: Create Teacher in Auth
+                    const userCred = await secondaryAuth.createUserWithEmailAndPassword(e, p);
+                    
+                    await db.collection('staff').doc(userCred.user.uid).set({
+                        institutionId: currentUser.id,
+                        authUid: userCred.user.uid,
+                        name: n, email: e, createdAt: new Date().toISOString()
+                    });
+                    
+                    await renderTab('staff');
+                    showToast("Teacher Registered Securely");
+                } catch(err) {
+                    showToast(err.message, "error");
+                }
+                showLoader(false); 
             } else {
                 showToast("All fields are required", "error");
             }
@@ -1027,7 +924,7 @@
         }
 
         async function deleteItem(col, id) {
-            if(confirm("Permanently Delete?")) { 
+            if(confirm("Permanently Delete? (Warning: Data cannot be recovered)")) { 
                 showLoader(true); 
                 const batch = db.batch();
                 batch.delete(db.collection(col).doc(id));
@@ -1052,46 +949,6 @@
             showLoader(true); await db.collection('exams').doc(id).update({ isPublished: !currentStatus }); await refreshData(); await renderTab('exams'); showLoader(false); showToast(!currentStatus ? "Exam Published" : "Exam Unpublished");
         }
 
-        function renderStudentList() {
-            const isTeacher = currentUser.role === 'teacher';
-            let list = [...localState.students];
-            const filterClass = $('s-filter-class') ? $('s-filter-class').value : '';
-            const search = $('s-search') ? $('s-search').value.toLowerCase() : '';
-            if (filterClass) list = list.filter(s => s.classId === filterClass);
-            if (search) list = list.filter(s => s.name.toLowerCase().includes(search) || s.admissionNo.toLowerCase().includes(search) || (s.parentName && s.parentName.toLowerCase().includes(search)));
-
-            const sort = $('s-sort') ? $('s-sort').value : 'name_asc';
-            list.sort((a, b) => {
-                if (sort === 'name_asc') return a.name.localeCompare(b.name);
-                if (sort === 'name_desc') return b.name.localeCompare(a.name);
-                if (sort === 'adm_asc') return a.admissionNo.localeCompare(b.admissionNo);
-                if (sort === 'adm_desc') return b.admissionNo.localeCompare(a.admissionNo);
-                return 0;
-            });
-
-            const container = $('student-list');
-            if(list.length === 0) { container.innerHTML = '<div class="p-8 text-center text-muted">No students found.</div>'; return; }
-
-            container.innerHTML = `<div class="divide-y divide-theme/50">${list.map(s => {
-                const cls = localState.classes.find(c=>c.id===s.classId)?.name || 'N/A';
-                return `<div class="p-3 md:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/10 transition group px-4 md:px-6 gap-3 border-b border-theme/50 last:border-0 w-full">
-                    <div class="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
-                        ${!isTeacher ? `<input type="checkbox" class="stu-check rounded bg-dark border-theme shrink-0" value="${s.id}" onchange="updateBulkState()">` : ''}
-                        <div class="flex-1 min-w-0">
-                            <p class="font-bold text-sm text-main truncate">${s.name}</p>
-                            <p class="text-[10px] text-muted font-mono mt-0.5 truncate">${s.admissionNo} • <span class="text-indigo-400">${cls}</span> ${s.parentName ? `<span class="opacity-70 hidden md:inline"> • <i class="fas fa-user-friends mx-1"></i>${s.parentName}</span>` : ''}</p>
-                        </div>
-                    </div>
-                    ${!isTeacher ? `
-                    <div class="flex gap-2 w-full sm:w-auto justify-end sm:opacity-50 group-hover:opacity-100 transition shrink-0 mt-2 sm:mt-0">
-                        <button onclick="editItem('students','${s.id}')" class="px-4 py-2 md:p-2 text-xs md:text-sm text-muted hover:text-blue-500 bg-dark md:bg-transparent rounded-lg transition border border-theme md:border-transparent md:hover:border-theme shadow-sm md:shadow-none flex-1 sm:flex-none text-center"><i class="fas fa-edit mr-2 md:mr-0"></i><span class="md:hidden">Edit</span></button>
-                        <button onclick="deleteItem('students','${s.id}')" class="px-4 py-2 md:p-2 text-xs md:text-sm text-red-500 hover:bg-red-500 hover:text-white bg-dark md:bg-transparent rounded-lg transition border border-theme md:border-transparent md:hover:border-red-500 shadow-sm md:shadow-none flex-1 sm:flex-none text-center"><i class="fas fa-trash mr-2 md:mr-0"></i><span class="md:hidden">Delete</span></button>
-                    </div>` : ''}
-                </div>`;
-            }).join('')}</div>`;
-            updateBulkState();
-        }
-
         function toggleSelectAll(checkbox) { document.querySelectorAll('.stu-check').forEach(c => c.checked = checkbox.checked); updateBulkState(); }
         function updateBulkState() {
             const count = document.querySelectorAll('.stu-check:checked').length; const btn = $('btn-promote');
@@ -1112,7 +969,9 @@
             const batch = db.batch(); let count = 0;
             selectedIds.forEach(id => { const ref = db.collection('students').doc(id); batch.update(ref, { classId: targetClassId }); count++; });
             await batch.commit(); await refreshData();
-            $('promote-modal').classList.add('hidden'); renderStudentList(); showLoader(false); showToast(`Promoted ${count} Students`);
+            $('promote-modal').classList.add('hidden'); 
+            resetPagination(); fetchStudents(); 
+            showLoader(false); showToast(`Promoted ${count} Students`);
         }
 
         function manageSubjects(cid) { $('modal-overlay').classList.remove('hidden'); $('modal-title').innerText = "Manage Subjects"; renderSubjectModal(cid); }
@@ -1145,107 +1004,131 @@
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Students"); XLSX.writeFile(wb, "Student_Template.xlsx"); 
         }
 
-        function exportStudents() {
-            if (!localState.students || localState.students.length === 0) {
-                return showToast("No students to export", "error");
-            }
-            
+        async function exportStudents() {
             showLoader(true);
             try {
-                const data = localState.students.map(s => {
+                const snap = await db.collection('students').where('institutionId', '==', currentUser.id).get();
+                const allStus = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                
+                if (allStus.length === 0) { showLoader(false); return showToast("No students to export", "error"); }
+
+                const data = allStus.map(s => {
                     const cls = localState.classes.find(c => c.id === s.classId);
-                    return {
-                        "Full Name": s.name,
-                        "Admission No": s.admissionNo,
-                        "Date of Birth (YYYY-MM-DD)": s.dob || "",
-                        "Class Name": cls ? cls.name : "Unassigned",
-                        "Parent Name": s.parentName || "",
-                        "Contact Phone": s.contactPhone || "",
-                        "Address": s.address || ""
-                    };
+                    return { "Full Name": s.name, "Admission No": s.admissionNo, "Date of Birth": s.dob || "", "Class Name": cls ? cls.name : "Unassigned", "Parent Name": s.parentName || "", "Contact Phone": s.contactPhone || "", "Address": s.address || "" };
                 });
 
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Students_Export");
                 XLSX.writeFile(wb, `Student_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
                 
-                showLoader(false);
-                showToast("Export successful!");
-            } catch (err) {
-                console.error("Export Error:", err);
-                showLoader(false);
-                showToast("Failed to export students", "error");
+                showLoader(false); showToast("Export successful!");
+            } catch (err) { console.error("Export Error:", err); showLoader(false); showToast("Failed to export students", "error"); }
+        }
+
+        // --- SCALABLE PAGINATION LOGIC (STUDENTS) ---
+        function resetPagination() { lastStudentDoc = null; hasMoreStudents = true; localState.students = []; }
+
+        async function fetchStudents(isLoadMore = false) {
+            if (!hasMoreStudents && isLoadMore) return;
+            const btn = $('btn-load-more');
+            if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Loading...';
+            if (!isLoadMore) $('student-list').innerHTML = '<div class="p-8 text-center text-muted"><i class="fas fa-spinner fa-spin mr-2"></i> Fetching records from database...</div>';
+
+            let q = db.collection('students').where('institutionId', '==', currentUser.id);
+
+            const filterClass = $('s-filter-class') ? $('s-filter-class').value : '';
+            if (filterClass) q = q.where('classId', '==', filterClass);
+
+            const searchVal = $('s-search') ? $('s-search').value.trim() : '';
+            if (searchVal) q = q.where('admissionNo', '==', searchVal);
+
+            q = q.limit(50);
+            if (isLoadMore && lastStudentDoc) q = q.startAfter(lastStudentDoc);
+
+            try {
+                const snap = await q.get();
+                if (snap.empty) {
+                    hasMoreStudents = false;
+                    if (!isLoadMore) $('student-list').innerHTML = '<div class="p-8 text-center text-muted">No students found.</div>';
+                } else {
+                    lastStudentDoc = snap.docs[snap.docs.length - 1];
+                    const newStus = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    
+                    if (isLoadMore) localState.students = [...localState.students, ...newStus];
+                    else localState.students = newStus;
+                    
+                    if (snap.docs.length < 50) hasMoreStudents = false;
+                    renderStudentListHTML();
+                }
+            } catch (e) { console.error("Pagination Error:", e); showToast("Failed to load students", "error"); }
+            
+            if (btn) {
+                if (hasMoreStudents && !searchVal) {
+                    btn.innerHTML = '<i class="fas fa-chevron-down mr-2"></i> Load More Students';
+                    btn.classList.remove('hidden');
+                } else { btn.classList.add('hidden'); }
             }
         }
 
-        function bulkImport() {
-            const f=$('s-file').files[0]; if(!f) return; const r=new FileReader();
-            r.onload = async (e) => {
-                showLoader(true); 
-                const w = XLSX.read(new Uint8Array(e.target.result), {type:'array'}); 
-                const data = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]]); 
-                const batch = db.batch(); let count = 0;
-                
-                for (const row of data) {
-                    const name = row['Full Name'] || row['Name']; 
-                    const adm = String(row['Admission No'] || row['AdmissionNo']); 
-                    const clsName = String(row['Class Name'] || row['Class']);
-                    const pName = row['Parent Name'] || '';
-                    const phone = row['Contact Phone'] || row['Phone'] || '';
-                    const addr = row['Address'] || '';
-                    
-                    if(name && adm && clsName) {
-                        let classObj = localState.classes.find(c => c.name.toLowerCase() === clsName.toLowerCase());
-                        let classId = classObj ? classObj.id : null;
-                        if(!classId) { 
-                            const clsRef = db.collection('classes').doc(); 
-                            batch.set(clsRef, { institutionId: currentUser.id, name: clsName, createdAt: new Date().toISOString() }); 
-                            classId = clsRef.id; 
-                            localState.classes.push({ id: classId, name: clsName }); 
-                        }
-                        const ref = db.collection('students').doc(); 
-                        batch.set(ref, { 
-                            institutionId: currentUser.id, name: String(name), admissionNo: adm, classId: classId, password: adm,
-                            parentName: pName, contactPhone: phone, address: addr 
-                        }); 
-                        count++;
-                    }
-                }
-                await batch.commit(); await renderTab('students'); showLoader(false); showToast(`Imported ${count} records`);
-            };
-            r.readAsArrayBuffer(f);
+        function renderStudentListHTML() {
+            const isTeacher = currentUser.role === 'teacher';
+            const list = localState.students;
+            const container = $('student-list');
+            
+            if(list.length === 0) { container.innerHTML = '<div class="p-8 text-center text-muted">No students found.</div>'; return; }
+
+            container.innerHTML = `<div class="divide-y divide-theme/50">${list.map(s => {
+                const cls = localState.classes.find(c=>c.id===s.classId)?.name || 'N/A';
+                return `<div class="p-3 md:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-800/10 transition group px-4 md:px-6 gap-3 border-b border-theme/50 last:border-0 w-full">
+                    <div class="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
+                        ${!isTeacher ? `<input type="checkbox" class="stu-check rounded bg-dark border-theme shrink-0" value="${s.id}" onchange="updateBulkState()">` : ''}
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-sm text-main truncate">${s.name}</p>
+                            <p class="text-[10px] text-muted font-mono mt-0.5 truncate">${s.admissionNo} • <span class="text-indigo-400">${cls}</span> ${s.parentName ? `<span class="opacity-70 hidden md:inline"> • <i class="fas fa-user-friends mx-1"></i>${s.parentName}</span>` : ''}</p>
+                        </div>
+                    </div>
+                    ${!isTeacher ? `
+                    <div class="flex gap-2 w-full sm:w-auto justify-end sm:opacity-50 group-hover:opacity-100 transition shrink-0 mt-2 sm:mt-0">
+                        <button onclick="editItem('students','${s.id}')" class="px-4 py-2 md:p-2 text-xs md:text-sm text-muted hover:text-blue-500 bg-dark md:bg-transparent rounded-lg transition border border-theme md:border-transparent md:hover:border-theme shadow-sm md:shadow-none flex-1 sm:flex-none text-center"><i class="fas fa-edit mr-2 md:mr-0"></i><span class="md:hidden">Edit</span></button>
+                        <button onclick="deleteItem('students','${s.id}')" class="px-4 py-2 md:p-2 text-xs md:text-sm text-red-500 hover:bg-red-500 hover:text-white bg-dark md:bg-transparent rounded-lg transition border border-theme md:border-transparent md:hover:border-red-500 shadow-sm md:shadow-none flex-1 sm:flex-none text-center"><i class="fas fa-trash mr-2 md:mr-0"></i><span class="md:hidden">Delete</span></button>
+                    </div>` : ''}
+                </div>`;
+            }).join('')}</div>`;
+            updateBulkState();
         }
 
-        function downloadMarksTemplate(cid, eid) {
-            const students = localState.students.filter(s => s.classId === cid); const subjects = localState.subjects.filter(s => s.classId === cid);
-            if(students.length === 0 || subjects.length === 0) return showToast("No data to export", "error");
-            const data = students.map(s => { const row = { "Admission No": s.admissionNo, "Name": s.name }; subjects.forEach(sub => row[sub.name] = ""); row["Attendance Days"] = ""; return row; });
+        async function downloadMarksTemplate(cid, eid) {
+            showLoader(true);
+            const snap = await db.collection('students').where('classId', '==', cid).get();
+            const classStus = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            const subjects = localState.subjects.filter(s => s.classId === cid);
+            showLoader(false);
+
+            if(classStus.length === 0 || subjects.length === 0) return showToast("No students or subjects found in this class", "error");
+            
+            const data = classStus.map(s => { const row = { "Admission No": s.admissionNo, "Name": s.name }; subjects.forEach(sub => row[sub.name] = ""); row["Attendance Days"] = ""; return row; });
             const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Marks_Entry"); const clsName = localState.classes.find(c=>c.id===cid)?.name || "Class"; XLSX.writeFile(wb, `Marks_Template_${clsName}.xlsx`);
         }
-        function importMarks(fileInput) {
-            const f = fileInput.files[0]; if(!f) return; const r = new FileReader();
-            r.onload = e => {
-                const w = XLSX.read(new Uint8Array(e.target.result), {type:'array'}); const data = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]]); const cid = $('pub-class').value; const subjects = localState.subjects.filter(s => s.classId === cid);
-                data.forEach(row => {
-                    const adm = row['Admission No']; const student = localState.students.find(s => s.classId === cid && s.admissionNo == adm);
-                    if(student) {
-                        const sid = student.id;
-                        subjects.forEach(sub => { const val = row[sub.name]; if(val !== undefined) { const inp = document.querySelector(`.mark-input[data-sid="${sid}"][data-sub="${sub.id}"]`); if(inp) { inp.value = val; calcRow(inp); } } });
-                        const attVal = row['Attendance Days'] || row['Attendance']; if(attVal !== undefined) { const attInp = document.querySelector(`.att-input[data-sid="${sid}"]`); if(attInp) { attInp.value = attVal; } }
-                    }
-                });
-                showToast("Data Imported. Please Save to apply changes."); fileInput.value = ''; updateLiveStats();
-            };
-            r.readAsArrayBuffer(f);
-        }
 
-        function loadResultGrid() {
+        async function loadResultGrid() {
             const eid=$('pub-exam').value, cid=$('pub-class').value;
             if(!eid||!cid) return showToast("Select Exam & Class","error");
+            showLoader(true);
+            const stuSnap = await db.collection('students').where('classId', '==', cid).get();
+            let stus = stuSnap.docs.map(d => ({id: d.id, ...d.data()}));
+            if(!stus.length) { showLoader(false); return showToast("No students in this class", "error"); }
+
+            const resSnap = await db.collection('results').where('examId', '==', eid).get();
+            localState.results = resSnap.docs.map(d => ({id: d.id, ...d.data()}));
+            const res = localState.results;
+            const subs = localState.subjects.filter(s => s.classId === cid); 
             
-            let stus = localState.students.filter(s => s.classId === cid); const subs = localState.subjects.filter(s => s.classId === cid); const res = localState.results.filter(r => r.examId === eid); const existingRes = res.find(r => r.totalAttendance); const totalAtt = existingRes ? existingRes.totalAttendance : '';
-            if(!stus.length) return showToast("No students in class", "error");
+            const otherStudents = localState.students.filter(s => s.classId !== cid);
+            localState.students = [...otherStudents, ...stus]; 
+
+            const existingRes = res.find(r => r.totalAttendance); 
+            const totalAtt = existingRes ? existingRes.totalAttendance : '';
+            showLoader(false);
 
             if(currentSort.key) {
                 const mapped = stus.map(s => { const r = res.find(x => x.studentId === s.id); return { ...s, total: r?.total||0, att: Number(r?.attendance)||0, rank: r?.rank||9999 }; });
@@ -1264,20 +1147,15 @@
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 w-full">
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                             <button onclick="downloadMarksTemplate('${cid}', '${eid}')" class="btn-secondary text-xs flex-1 sm:flex-none"><i class="fas fa-download mr-1"></i> Template</button>
-                            <button onclick="$('mark-file').click()" class="btn-secondary text-xs flex-1 sm:flex-none"><i class="fas fa-file-upload mr-1"></i> Upload Excel</button>
-                            <input type="file" id="mark-file" hidden onchange="importMarks(this)" accept=".xlsx,.csv">
-                            
                             <div class="flex items-center justify-between gap-3 bg-dark/60 px-4 py-2 rounded-lg border border-theme w-full sm:w-auto mt-1 sm:mt-0">
                                 <span class="font-bold text-muted uppercase text-[10px] tracking-wider">Attendance Days</span>
                                 <input type="number" id="total-att" class="bg-transparent border-none text-yellow-400 font-bold w-16 text-right focus:outline-none p-0 m-0 text-sm" value="${totalAtt}" placeholder="0">
                             </div>
                         </div>
-                        
                         <button onclick="saveResults('${eid}','${cid}')" class="btn-primary px-8 py-3 rounded-xl shadow-lg shadow-indigo-500/20 w-full lg:w-auto flex items-center justify-center gap-2 shrink-0 text-sm">
                             <i class="fas fa-save text-lg"></i> Save Results
                         </button>
                     </div>
-                    
                     <div class="flex items-center justify-between sm:justify-start sm:gap-10 border-t border-theme pt-4">
                         <div class="stat-group"><span class="stat-label">Students</span><span class="stat-val text-xl">${stus.length}</span></div>
                         <div class="stat-group"><span class="stat-label">Class Avg</span><span class="stat-val text-xl" id="live-avg">--</span></div>
@@ -1308,13 +1186,7 @@
                 <td data-label="Preview" class="border-l border-theme text-center p-1"><button onclick="previewTranscript('${s.id}')" class="p-2 text-muted hover:text-main transition w-full py-2 bg-dark rounded"><i class="fas fa-eye"></i> View</button></td></tr>`;
             });
             
-            html += `</tbody></table></div></div>
-            <div class="mt-6 flex justify-end pb-8">
-                <button onclick="saveResults('${eid}','${cid}')" class="btn-primary px-8 py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto">
-                    <i class="fas fa-check-circle text-lg"></i> Confirm & Save All
-                </button>
-            </div>`;
-            
+            html += `</tbody></table></div></div>`;
             $('result-grid-container').innerHTML = html; updateLiveStats();
         }
 
@@ -1326,29 +1198,15 @@
             const pass = Number(inp.dataset.pass); 
             const sid = inp.dataset.sid;
 
-            if(val > max) {
-                val = max;
-                inp.value = max;
-                showToast(`Max marks allowed is ${max}`, "error");
-            }
-            if(val < 0) {
-                val = 0;
-                inp.value = 0;
-            }
-
+            if(val > max) { val = max; inp.value = max; showToast(`Max marks allowed is ${max}`, "error"); }
+            if(val < 0) { val = 0; inp.value = 0; }
             if(val < pass && inp.value !== '') inp.classList.add('fail-mark'); else inp.classList.remove('fail-mark');
             
-            let isFail = false; 
-            let hasMarks = false;
+            let isFail = false; let hasMarks = false;
             document.querySelectorAll(`.mark-input[data-sid="${sid}"]:not([data-type="att"])`).forEach(i => { 
-                if(i.value !== '') {
-                    hasMarks = true;
-                    if(Number(i.value) < Number(i.dataset.pass)) isFail = true; 
-                }
+                if(i.value !== '') { hasMarks = true; if(Number(i.value) < Number(i.dataset.pass)) isFail = true; }
             });
-            
-            const statusDiv = $(`rs-${sid}`); 
-            statusDiv.className = `row-status ${hasMarks ? (isFail ? 'rs-fail' : 'rs-pass') : 'rs-neutral'}`;
+            $(`rs-${sid}`).className = `row-status ${hasMarks ? (isFail ? 'rs-fail' : 'rs-pass') : 'rs-neutral'}`;
             updateLiveStats();
         }
 
@@ -1383,7 +1241,6 @@
                 const total = Object.values(marks).reduce((a,b)=>a+Number(b), 0);
                 rankingData.push({ sid, total, att: Number(map[sid].att) });
             });
-
             rankingData.sort((a,b) => { if(b.total !== a.total) return b.total - a.total; return b.att - a.att; });
 
             let rank = 1;
@@ -1400,13 +1257,12 @@
                 batch.set(docRef, { institutionId: currentUser.id, examId: eid, studentId: d.sid, subjectMarks: map[d.sid].marks, total: d.total, attendance: map[d.sid].att, totalAttendance: totalAtt, rank: d.rank });
             });
 
-            await batch.commit(); await refreshData(); loadResultGrid(); showLoader(false); showToast("Results Saved & Ranked");
+            await batch.commit(); await loadResultGrid(); showLoader(false); showToast("Results Saved & Ranked");
         }
 
         function previewTranscript(sid) {
             const s = localState.students.find(x => x.id === sid); const eid = $('pub-exam').value; const exam = localState.exams.find(e => e.id === eid);
             const inputs = document.querySelectorAll(`input[data-sid="${sid}"]:not(.att-input)`); const attVal = document.querySelector(`input.att-input[data-sid="${sid}"]`)?.value || '0'; const totalAtt = $('total-att').value || '-';
-            
             const gradeScale = currentUser.customGradeScale || DEFAULT_SCALES[currentUser.gradeScale || 'standard'];
             let legendStr = getGradeLegend(gradeScale);
             
@@ -1415,18 +1271,13 @@
                 const sub = localState.subjects.find(sb => sb.id === inp.dataset.sub);
                 const score = inp.value === '' ? '-' : Number(inp.value);
                 let grade = '-';
-                if(score !== '-') {
-                    total += score;
-                    maxTotal += sub.fullMarks;
-                    grade = getGrade((score / sub.fullMarks) * 100, gradeScale);
-                }
+                if(score !== '-') { total += score; maxTotal += sub.fullMarks; grade = getGrade((score / sub.fullMarks) * 100, gradeScale); }
                 rows += `<tr><td class="text-left font-bold pl-6 text-slate-800">${sub.name}</td><td>${sub.fullMarks}</td><td>${sub.passMarks}</td><td class="font-bold ${score !== '-' ? (score < sub.passMarks ? 'text-red-600' : 'text-emerald-600') : 'text-slate-900'}">${score}</td><td class="font-bold text-slate-700">${grade}</td></tr>`;
             });
 
             const finalPct = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : 0;
             let status = 'PASS'; inputs.forEach(inp => { const pass = Number(inp.dataset.pass); if(inp.value !== '' && Number(inp.value) < pass) status = 'FAIL'; });
             const clsName = status === 'PASS' ? 'pass' : 'fail';
-            
             let finalGrade = getGrade(finalPct, gradeScale);
             if(status === 'FAIL') finalGrade = 'F';
             
@@ -1450,14 +1301,18 @@
                 <div class="doc-footer border-t-2 border-slate-900 pt-6 mt-4 flex justify-between items-end"><div class="text-[8px] text-slate-500 font-mono w-2/3 leading-tight">This document is securely processed and digitally generated by <span class="dynamic-brand-name">easyresults</span> Cloud Systems.<br>Valid academic record. No physical signature required for web verification.</div><div class="principal-box text-center"><div class="h-16 flex items-end justify-center mb-1">${currentUser.signatureImage ? `<img src="${currentUser.signatureImage}" crossorigin="anonymous" class="max-h-full max-w-full object-contain filter grayscale contrast-125">` : '<div class="h-8 border-b border-black w-32 mx-auto"></div>'}</div><div class="border-t-2 border-slate-900 w-32 mx-auto mb-1"></div><p class="text-[9px] font-bold uppercase tracking-widest text-slate-900">Principal Signature</p></div></div>
             `;
             
+            if(currentUser.profileImage) $('mk-watermark').src = currentUser.profileImage;
+            
             const ctr = document.getElementById('mk-printable');
+            ctr.style.display = 'block'; 
             if(window.innerWidth < 800) {
-                const scale = (window.innerWidth - 32) / ctr.offsetWidth;
-                ctr.style.transform = `scale(${scale})`;
-                ctr.style.marginBottom = `-${(1-scale)*100}%`; 
+                const padding = 16; const availableWidth = window.innerWidth - (padding * 2);
+                const scale = availableWidth / 794; 
+                ctr.style.transform = `scale(${scale})`; ctr.style.transformOrigin = 'top left'; ctr.style.marginLeft = `${padding}px`; 
+                const heightLoss = 1122 * (1 - scale); ctr.style.marginBottom = `-${heightLoss}px`; 
             } else {
-                ctr.style.transform = 'none';
-                ctr.style.marginBottom = '0';
+                ctr.style.display = 'inline-block'; ctr.style.margin = '0 auto'; ctr.style.transform = 'scale(0.8)'; ctr.style.transformOrigin = 'top center';
+                const heightLoss = 1122 * (1 - 0.8); ctr.style.marginBottom = `-${heightLoss}px`;
             }
         }
         
@@ -1465,25 +1320,29 @@
             showLoader(true);
             const { jsPDF } = window.jspdf;
             const element = document.getElementById('mk-printable'); 
-            
             const originalTransform = element.style.transform;
+            const originalMargin = element.style.marginBottom;
+            const originalMarginLeft = element.style.marginLeft;
             element.style.transform = 'scale(1)';
+            element.style.marginBottom = '0';
+            element.style.marginLeft = '0';
             
             html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
                 element.style.transform = originalTransform; 
-                
+                element.style.marginBottom = originalMargin;
+                element.style.marginLeft = originalMarginLeft;
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
                 pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                
                 const admNo = document.getElementById('mk-adm').innerText || 'Student';
                 pdf.save(`${admNo}_Transcript.pdf`);
-                
                 showLoader(false);
             }).catch(err => {
                 element.style.transform = originalTransform; 
+                element.style.marginBottom = originalMargin;
+                element.style.marginLeft = originalMarginLeft;
                 console.error(err);
                 showLoader(false);
                 showToast("PDF generation failed", "error");
@@ -1492,30 +1351,21 @@
 
         async function saveSettings() {
             showLoader(true);
-            
             draftGradeScale.sort((a, b) => b.m - a.m);
-
             const data = {
                 name: $('set-name').value, tagline: $('set-tag').value, aboutText: $('set-about').value,
                 contactEmail: $('set-email').value, contactPhone: $('set-phone').value, address: $('set-addr').value,
                 themeColor: $('set-color').value, theme: $('set-theme').value, 
                 gradeScale: $('set-grade-scale').value, customGradeScale: draftGradeScale
             };
-            
-            // SECURITY CHECK: Only allow saving logo/sig if owner gave Full Access
             if (currentUser.hasFullAccess === true) {
                 data.profileImage = formatImageUrl($('set-logo').value.trim());
                 data.signatureImage = formatImageUrl($('set-sig').value.trim());
             }
-            
             await db.collection('institutions').doc(currentUser.id).update(data);
-            
-            // Update local session data
             currentUser = { ...currentUser, ...data }; 
             localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
             applyTheme(currentUser); 
-            
-            // FIXED: Use 'currentUser.profileImage' instead of 'data.profileImage'
             if (currentUser.profileImage) {
                 $('sidebar-logo').src = currentUser.profileImage;
                 $('sidebar-logo').classList.remove('hidden');
@@ -1533,7 +1383,6 @@
                     $('mobile-header-icon-admin').classList.remove('hidden');
                 }
             }
-            
             showLoader(false); 
             showToast("Profile Updated");
         }

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>easyresults | Command Center</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020617">
+    <link rel="apple-touch-icon" href="logo.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="security.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -42,6 +46,7 @@
             font-size: 0.95rem;
         }
         .input-dark:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .input-dark:disabled { opacity: 0.5; cursor: not-allowed; }
         
         /* Buttons */
         .btn-gradient {
@@ -65,7 +70,7 @@
         
         /* Animations & Utilities */
         .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); }
-        .fade-in { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); } /* Ensures compatibility with utils.js */
+        .fade-in { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); }
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
         
         ::-webkit-scrollbar { width: 6px; }
@@ -178,7 +183,7 @@
                         <p class="text-[10px] text-slate-500">owner@easyresults.com</p>
                     </div>
                     <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400">
-                        <i class="fas fa-user-secret"></i>
+                        <i class="fas fa-shield-alt text-emerald-400"></i>
                     </div>
                 </div>
             </header>
@@ -200,23 +205,21 @@
                     <input id="edit-name" class="input-dark">
                 </div>
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500 uppercase">Admin Email (Login)</label>
-                    <input id="edit-email" class="input-dark">
+                    <label class="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">Admin Email (Login) <i class="fas fa-lock text-yellow-500" title="Email is locked by Firebase Auth"></i></label>
+                    <input id="edit-email" class="input-dark bg-slate-900" disabled>
                 </div>
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-500 uppercase">New Password</label>
-                    <input id="edit-pass" class="input-dark" placeholder="Leave blank to keep current">
+                <div class="text-[10px] text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700 mt-4">
+                    <i class="fas fa-info-circle text-blue-400 mr-1"></i> Passwords are now securely encrypted by Google Firebase. If an Admin needs a password reset, use the Authentication tab in your Firebase Console.
                 </div>
             </div>
             <div class="p-6 border-t border-slate-800 flex gap-3">
                 <button onclick="closeModal()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition">Cancel</button>
-                <button onclick="saveEdit()" class="flex-1 py-3 btn-gradient rounded-xl font-bold text-sm shadow-lg">Save Changes</button>
+                <button onclick="saveEdit()" class="flex-1 py-3 btn-gradient rounded-xl font-bold text-sm shadow-lg">Save Name</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- GLOBAL BRANDING & SUPPORT LISTENER ---
         let supportWhatsapp = "";
         
         db.collection('site_config').doc('main').onSnapshot(doc => {
@@ -228,12 +231,10 @@
                 const currentTitle = document.title.split('|')[0].trim();
                 document.title = `${currentTitle} | ${brandName}`;
                 
-                // Update specific owner branding texts
                 if(document.getElementById('owner-brand-name')) {
                     document.getElementById('owner-brand-name').innerText = brandName;
                 }
                 
-                // If a brandLogo exists in the DB, it overrides logo.png
                 if(data.brandLogo) {
                     const formattedLogo = formatImageUrl(data.brandLogo);
                     if(document.getElementById('owner-login-logo')) document.getElementById('owner-login-logo').src = formattedLogo;
@@ -247,7 +248,6 @@
         const SESSION_KEY = 'easyresults_owner_session';
         const CREDENTIALS = { id: 'owner', pass: 'admin123' };
 
-        // Globals for Charts
         let oMainChart = null;
         let oPieChart = null;
 
@@ -257,7 +257,6 @@
             document.getElementById('mobile-overlay').classList.toggle('open');
         }
 
-        // --- AUTH & EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('login-form');
             if(form) {
@@ -295,7 +294,6 @@
             window.location.reload();
         }
 
-        // --- ADAPTER FUNCTIONS ---
         async function fetchCollection(colName) {
             const snap = await db.collection(colName).get();
             return snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -322,7 +320,6 @@
             await db.collection('site_config').doc('main').set(data, { merge: true });
         }
 
-        // --- DASHBOARD LOGIC ---
         async function renderTab(tab) {
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.toggle('active', el.getAttribute('onclick').includes(tab));
@@ -340,7 +337,6 @@
             showLoader(true);
 
             try {
-                // 1. OVERVIEW
                 if(tab === 'overview') {
                     title.innerText = 'System Analytics';
                     const insts = await fetchCollection('institutions');
@@ -434,7 +430,6 @@
                     });
                 }
 
-                // 2. INSTITUTIONS
                 if(tab === 'institutions') {
                     title.innerText = 'Manage Institutions';
                     const insts = await fetchCollection('institutions');
@@ -448,8 +443,8 @@
                                     <div class="space-y-5">
                                         <div><label class="text-xs font-bold text-slate-500 uppercase">Name</label><input id="n-name" class="input-dark mt-1" placeholder="e.g. Springfield Academy"></div>
                                         <div><label class="text-xs font-bold text-slate-500 uppercase">Email</label><input id="n-email" class="input-dark mt-1" placeholder="admin@school.com"></div>
-                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Password</label><input id="n-pass" class="input-dark mt-1" placeholder="Secure Password"></div>
-                                        <button onclick="addInst()" class="w-full btn-gradient py-3.5 rounded-xl font-bold text-sm shadow-lg mt-2 flex items-center justify-center gap-2"><i class="fas fa-plus-circle"></i> Create Account</button>
+                                        <div><label class="text-xs font-bold text-slate-500 uppercase">Password</label><input id="n-pass" type="password" class="input-dark mt-1" placeholder="Secure Password"></div>
+                                        <button onclick="addInst()" class="w-full btn-gradient py-3.5 rounded-xl font-bold text-sm shadow-lg mt-2 flex items-center justify-center gap-2"><i class="fas fa-shield-alt"></i> Create Secure Account</button>
                                     </div>
                                 </div>
                             </div>
@@ -465,7 +460,6 @@
                     renderInstListHTML(insts);
                 }
 
-                // 3. GLOBAL CMS
                 if(tab === 'global_cms') {
                     title.innerText = 'Global Website CMS';
                     const c = await getSiteConfig();
@@ -530,7 +524,6 @@
                         </div>`;
                 }
 
-                // 4. BRANDING
                 if(tab === 'branding') {
                     title.innerText = 'School Branding';
                     const insts = await fetchCollection('institutions');
@@ -585,7 +578,6 @@
                         </div>`;
                 }
 
-                // 5. DATA (Export/Backup)
                 if(tab === 'data') {
                     title.innerText = 'Data Management';
                     content.innerHTML = `
@@ -595,6 +587,14 @@
                                 <div class="flex-1"><h3 class="text-xl font-bold text-white">Backup Database</h3><p class="text-slate-400 text-sm mt-1">Export full JSON snapshot from Cloud (Includes Staff & Students).</p></div>
                                 <button onclick="downloadBackup()" class="w-full md:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shrink-0">Export JSON</button>
                             </div>
+                            
+                            <div class="glass-card p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 rounded-2xl hover:border-emerald-500/50 transition cursor-default text-center md:text-left">
+                                <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-3xl shrink-0"><i class="fas fa-upload"></i></div>
+                                <div class="flex-1"><h3 class="text-xl font-bold text-white">Restore Backup</h3><p class="text-slate-400 text-sm mt-1">Import a previously exported JSON snapshot to restore data.</p></div>
+                                <input type="file" id="import-json-file" accept=".json" class="hidden" onchange="processImport(this)">
+                                <button onclick="document.getElementById('import-json-file').click()" class="w-full md:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition shadow-lg shrink-0">Import JSON</button>
+                            </div>
+
                             <div class="glass-card p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 rounded-2xl border-red-900/30 bg-red-900/5 hover:bg-red-900/10 transition cursor-default text-center md:text-left">
                                 <div class="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 text-3xl shrink-0"><i class="fas fa-trash-alt"></i></div>
                                 <div class="flex-1"><h3 class="text-xl font-bold text-red-400">Factory Reset</h3><p class="text-red-300/60 text-sm mt-1">Permanently delete ALL data in every collection.</p></div>
@@ -640,7 +640,7 @@
                                 <button onclick="toggleFullAccess('${i.id}', ${!!i.hasFullAccess})" class="p-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-yellow-400 transition" title="Toggle Full Access"><i class="fas fa-star ${i.hasFullAccess ? 'text-yellow-400' : ''}"></i></button>
                                 <button onclick="sendWhatsAppLink('${i.id}')" class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-white transition" title="Send Link via WhatsApp"><i class="fab fa-whatsapp"></i></button>
                                 <button onclick="loginAs('${i.id}')" class="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition" title="Login As Admin"><i class="fas fa-sign-in-alt"></i></button>
-                                <button onclick="openEditModal('${i.id}')" class="p-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button onclick="openEditModal('${i.id}')" class="p-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition" title="Edit Name"><i class="fas fa-edit"></i></button>
                                 <button onclick="copyLink('${i.id}')" class="p-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition" title="Copy Homepage Link"><i class="fas fa-link"></i></button>
                                 <button onclick="toggleInst('${i.id}',${!(i.isActive!==false)})" class="p-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition" title="Toggle Status"><i class="fas fa-power-off"></i></button>
                                 <button onclick="deleteInst('${i.id}')" class="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash"></i></button>
@@ -662,13 +662,9 @@
         function sendWhatsAppLink(id) {
             const inst = window.currentInstList.find(x => x.id === id);
             if (!inst) return showToast("Institution not found", "error");
-            
-            if (!inst.contactPhone) {
-                return showToast("No phone number registered for this institution.", "error");
-            }
+            if (!inst.contactPhone) return showToast("No phone number registered for this institution.", "error");
 
             const phone = inst.contactPhone.replace(/\D/g, ''); 
-            
             const portalUrl = `${window.location.origin}${window.location.pathname.replace('owner.html','')}home.html?id=${id}`;
             const message = `Hello *${inst.name}*! 👋\n\nYour easyresults portal is now verified and active. You can access your admin dashboard and student portal here:\n\n${portalUrl}\n\nLogin Email: ${inst.email}\n\nWelcome aboard!`;
             
@@ -686,14 +682,31 @@
             const n=$('n-name').value, e=$('n-email').value, p=$('n-pass').value;
             if(n&&e&&p){
                 showLoader(true);
-                await createDoc('institutions', {
-                    name:n, email:e, pass:p, 
-                    isActive:true, themeColor:'#6366f1', theme:'deep_space',
-                    createdAt: new Date().toISOString()
-                });
-                showToast("Institution Created in Cloud");
-                await renderTab('institutions');
-            } else showToast("Please fill all fields", "error");
+                try {
+                    const userCred = await secondaryAuth.createUserWithEmailAndPassword(e, p);
+                    
+                    await db.collection('institutions').doc(userCred.user.uid).set({
+                        name: n, 
+                        email: e, 
+                        isActive: true, 
+                        hasFullAccess: false, 
+                        themeColor: '#6366f1', 
+                        theme: 'deep_space',
+                        createdAt: new Date().toISOString()
+                    });
+                    
+                    showToast("Institution Created Securely");
+                    
+                    $('n-name').value = ''; $('n-email').value = ''; $('n-pass').value = '';
+                    
+                    await renderTab('institutions');
+                } catch(error) {
+                    showToast(error.message, "error");
+                }
+                showLoader(false);
+            } else {
+                showToast("Please fill all fields", "error");
+            }
         }
 
         function openEditModal(id) {
@@ -702,17 +715,16 @@
                 $('edit-id').value = id;
                 $('edit-name').value = i.name;
                 $('edit-email').value = i.email;
-                $('edit-pass').value = '';
                 $('edit-modal').classList.remove('hidden');
             }
         }
+        
         function closeModal() { $('edit-modal').classList.add('hidden'); }
 
         async function saveEdit() {
             const id = $('edit-id').value;
             showLoader(true);
-            const data = { name: $('edit-name').value, email: $('edit-email').value };
-            if($('edit-pass').value) data.pass = $('edit-pass').value;
+            const data = { name: $('edit-name').value };
             await updateDocFunc('institutions', id, data);
             showToast("Institution Updated");
             closeModal();
@@ -819,6 +831,79 @@
                 document.body.appendChild(a); a.click(); a.remove();
             } catch(e) { console.error(e); showToast("Backup Failed", "error"); }
             showLoader(false);
+        }
+        
+        async function processImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            if (!confirm("Are you sure you want to import this backup? Existing data with matching IDs will be overwritten.")) {
+                input.value = '';
+                return;
+            }
+
+            showLoader(true);
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const collections = ['institutions', 'students', 'staff', 'exams', 'results', 'classes', 'subjects'];
+                    
+                    let batches = [];
+                    let currentBatch = db.batch();
+                    let opCount = 0;
+                    let totalCount = 0;
+                    
+                    const commitOp = () => {
+                        opCount++;
+                        totalCount++;
+                        if (opCount === 490) { // Keep slightly under 500 limit just to be safe
+                            batches.push(currentBatch.commit());
+                            currentBatch = db.batch();
+                            opCount = 0;
+                        }
+                    };
+
+                    for (const col of collections) {
+                        if (data[col] && Array.isArray(data[col])) {
+                            for (const item of data[col]) {
+                                const { id, ...docData } = item;
+                                if (id) {
+                                    const ref = db.collection(col).doc(id);
+                                    currentBatch.set(ref, docData);
+                                    commitOp();
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (data.siteConfig) {
+                        const ref = db.collection('site_config').doc('main');
+                        currentBatch.set(ref, data.siteConfig);
+                        commitOp();
+                    }
+                    
+                    if (opCount > 0) {
+                        batches.push(currentBatch.commit());
+                    }
+                    
+                    await Promise.all(batches);
+
+                    showToast(`Successfully restored ${totalCount} records!`);
+                    await renderTab('data'); // Refresh the view if needed
+                } catch (err) {
+                    console.error(err);
+                    showToast("Failed to parse or import JSON file.", "error");
+                }
+                showLoader(false);
+                input.value = ''; 
+            };
+            reader.onerror = () => {
+                showLoader(false);
+                showToast("Error reading file.", "error");
+                input.value = '';
+            };
+            reader.readAsText(file);
         }
 
         async function wipeData() { 
